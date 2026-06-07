@@ -5,6 +5,113 @@ import MapPageLayout from "./components/MapPageLayout";
 import { motion, AnimatePresence } from "motion/react";
 import { Utensils } from "lucide-react";
 
+const SPREADSHEET_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vS4-Q2xzTPS_zlsMKJ4sMdP17Nb56u1eDEUJluu2gc1DnYxenXOclGqTKGSOEaRXBAXVHJfyQ6WJHBz/pub?output=csv";
+
+// Client-side Coordinate Normalization Functions mirroring server.ts exactly
+function normalizeLatitude(val: number): number {
+  if (isNaN(val) || val === 0) return 41.0082; // İstanbul Default
+  let lat = Math.abs(val);
+  if (lat > 43.5) {
+    while (lat > 43.5) {
+      lat /= 10;
+    }
+  }
+  if (lat < 35.0) {
+    while (lat < 35.0 && lat > 0) {
+      lat *= 10;
+    }
+  }
+  return lat;
+}
+
+function normalizeLongitude(val: number): number {
+  if (isNaN(val) || val === 0) return 28.9784; // İstanbul Default
+  let lng = Math.abs(val);
+  if (lng > 45.5) {
+    while (lng > 45.5) {
+      lng /= 10;
+    }
+  }
+  if (lng < 25.0) {
+    while (lng < 25.0 && lng > 0) {
+      lng *= 10;
+    }
+  }
+  return lng;
+}
+
+function parseCSVLine(line: string): string[] {
+  const result: string[] = [];
+  let current = "";
+  let inQuotes = false;
+  for (let i = 0; i < line.length; i++) {
+    const char = line[i];
+    if (char === '"') {
+      inQuotes = !inQuotes;
+    } else if (char === ',' && !inQuotes) {
+      result.push(current.trim().replace(/^"|"$/g, ''));
+      current = "";
+    } else {
+      current += char;
+    }
+  }
+  result.push(current.trim().replace(/^"|"$/g, ''));
+  return result;
+}
+
+async function fetchAndParseCSVClientSide(): Promise<Facility[]> {
+  console.log("Vercel / Static fallback: Fetching Google Sheets CSV directly on client-side...");
+  const res = await fetch(SPREADSHEET_URL);
+  if (!res.ok) {
+    throw new Error(`Google Sheets fetch failed with status: ${res.status}`);
+  }
+  const csvText = await res.text();
+  const lines = csvText.split(/\r?\n/).filter(line => line.trim().length > 0);
+  
+  if (lines.length <= 1) {
+    throw new Error("CSV contains no data or header only");
+  }
+
+  const facilities: Facility[] = [];
+
+  for (let i = 1; i < lines.length; i++) {
+    const columns = parseCSVLine(lines[i]);
+    if (columns.length < 5) continue;
+
+    const name = columns[0] || "";
+    const type = columns[1] || "Sosyal Tesis";
+    const city = columns[2] || "İstanbul";
+    const district = columns[3] || "";
+    const address = columns[4] || "";
+    const rawLat = parseFloat(columns[5]);
+    const rawLng = parseFloat(columns[6]);
+    const openingHours = columns[7] || "09:00";
+    const closingHours = columns[8] || "22:00";
+    const imageUrl = columns[9] || "";
+
+    const lat = normalizeLatitude(rawLat);
+    const lng = normalizeLongitude(rawLng);
+    const id = `facility-${i}`;
+
+    facilities.push({
+      id,
+      name,
+      type,
+      city,
+      district,
+      address,
+      lat,
+      lng,
+      openingHours,
+      closingHours,
+      imageUrl
+    });
+  }
+
+  console.log(`Successfully parsed ${facilities.length} entries directly in browser fallback.`);
+  return facilities;
+}
+
 export default function App() {
   const [currentPage, setCurrentPage] = useState<Page>("landing");
   const [facilities, setFacilities] = useState<Facility[]>([]);
@@ -25,14 +132,29 @@ export default function App() {
       const res = await fetch(endpoint, { method });
       if (!res.ok) throw new Error(`API returned error status: ${res.status}`);
       
+      // Look out for text/html response (Vercel automatic SPA routing returns index.html on missing API)
+      const contentType = res.headers.get("content-type") || "";
+      if (contentType.includes("text/html")) {
+        throw new Error("API route returned HTML instead of JSON. Assuming Vercel static deployment.");
+      }
+
       const data = await res.json();
       
       // If it has "facilities" because it's a refresh action response
       const list = Array.isArray(data) ? data : (data.facilities || []);
+      if (!list || list.length === 0) {
+        throw new Error("No facilities returned from API");
+      }
       setFacilities(list);
     } catch (err: any) {
-      console.error("Failed to load facilities:", err);
-      setError("Sosyal tesis listesi yüklenirken bir sorun oluştu. Lütfen bağlantınızı kontrol edin.");
+      console.warn("Express backend API call failed or is unavailable in Vercel. Activating client-side Google Sheets fallback. Error:", err.message || err);
+      try {
+        const clientSideFacilities = await fetchAndParseCSVClientSide();
+        setFacilities(clientSideFacilities);
+      } catch (fallbackErr: any) {
+        console.error("Direct Google Sheets CSV client-side fetch also failed:", fallbackErr);
+        setError("Sosyal tesis listesi yüklenirken bir sorun oluştu. Lütfen internet bağlantınızı kontrol edin.");
+      }
     } finally {
       setIsLoading(false);
     }
