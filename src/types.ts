@@ -17,7 +17,7 @@ export type Page = 'landing' | 'map';
 export interface FilterState {
   search: string;
   type: string;
-  district: string;
+  city: string;
   onlyFavorites: boolean;
   onlyOpenNow: boolean;
 }

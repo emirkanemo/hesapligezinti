@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 import { MapContainer, TileLayer, Marker, Popup, Tooltip, useMap, Polyline } from "react-leaflet";
 import L from "leaflet";
 import { Facility, getFacilityCategory } from "../types";
@@ -128,6 +128,20 @@ export default function MapComponent({
   isDarkMode = false,
   language = "tr",
 }: MapComponentProps) {
+  // A stringified key representing the list and order of facilities shown.
+  // This ensures icons and marker elements are NOT recreated when the parent state updates
+  // (such as when adding/removing a facility to favorites), completely preventing re-animation blink.
+  const facilitiesKey = useMemo(() => facilities.map((f) => f.id).join(","), [facilities]);
+
+  const memoizedIcons = useMemo(() => {
+    const iconsMap: Record<string, L.DivIcon> = {};
+    facilities.forEach((fac, index) => {
+      const isSelected = selectedFacility?.id === fac.id;
+      iconsMap[fac.id] = createCustomIcon(fac.type, isSelected, isDarkMode, index);
+    });
+    return iconsMap;
+  }, [facilitiesKey, selectedFacility?.id, isDarkMode]);
+
   // Center is selected facility coordinate, or default Istanbul Center scale
   const defaultCenter: [number, number] = [41.0082, 28.9784];
   const center: [number, number] = selectedFacility
@@ -223,13 +237,12 @@ export default function MapComponent({
         )}
 
         {/* Render all facility pins */}
-        {facilities.map((fac, index) => {
-          const isSelected = selectedFacility?.id === fac.id;
+        {facilities.map((fac) => {
           return (
             <Marker
-              key={`${fac.id}-${facilities.length}`}
+              key={fac.id}
               position={[fac.lat, fac.lng]}
-              icon={createCustomIcon(fac.type, isSelected, isDarkMode, index)}
+              icon={memoizedIcons[fac.id]}
               eventHandlers={{
                 click: () => {
                   onSelectFacility(fac);

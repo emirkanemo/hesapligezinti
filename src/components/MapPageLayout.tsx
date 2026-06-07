@@ -32,7 +32,7 @@ export default function MapPageLayout({
   const [filters, setFilters] = useState<FilterState>({
     search: "",
     type: "Tümü",
-    district: "Tümü",
+    city: "Tümü",
     onlyFavorites: false,
     onlyOpenNow: false,
   });
@@ -92,12 +92,12 @@ export default function MapPageLayout({
   const [showFiltersMobile, setShowFiltersMobile] = useState(false);
   const [isSearchFocused, setIsSearchFocused] = useState(false);
 
-  // Dynamically find popular districts in our dataset to show as quick click suggestion tags
-  const popularDistricts = useMemo(() => {
+  // Dynamically find popular cities in our dataset to show as quick click suggestion tags
+  const popularCities = useMemo(() => {
     const counts: { [key: string]: number } = {};
     facilities.forEach(f => {
-      if (f.district && f.district !== "Tümü") {
-        counts[f.district] = (counts[f.district] || 0) + 1;
+      if (f.city && f.city !== "Tümü") {
+        counts[f.city] = (counts[f.city] || 0) + 1;
       }
     });
     return Object.entries(counts)
@@ -314,10 +314,10 @@ export default function MapPageLayout({
     }
   };
 
-  // Extract unique districts for dropdown filter list, sorted in Turkish alphabet order
-  const uniqueDistricts = useMemo(() => {
-    const districts = facilities.map((f) => f.district).filter(Boolean);
-    const unique = Array.from(new Set(districts));
+  // Extract unique cities (iller) for dropdown filter list dynamically from facilities on the map, sorted in Turkish alphabet order
+  const uniqueCities = useMemo(() => {
+    const cities = facilities.map((f) => f.city).filter(Boolean);
+    const unique = Array.from(new Set(cities));
     return ["Tümü", ...unique.sort((a, b) => a.localeCompare(b, "tr"))];
   }, [facilities]);
 
@@ -327,7 +327,7 @@ export default function MapPageLayout({
   // Normalize search values
   const normalizedSearch = filters.search.toLowerCase().trim();
 
-  // Filter facilities based on Search query, Category, District, and Favorites
+  // Filter facilities based on Search query, Category, City, and Favorites
   const filteredFacilities = useMemo(() => {
     return facilities.filter((fac) => {
       // 0. Favorites filter
@@ -343,11 +343,12 @@ export default function MapPageLayout({
         }
       }
 
-      // 1. Search text filter (matches Name, Address, or District)
+      // 1. Search text filter (matches Name, Address, City, or District)
       const matchesSearch =
         normalizedSearch === "" ||
         fac.name.toLowerCase().includes(normalizedSearch) ||
         fac.district.toLowerCase().includes(normalizedSearch) ||
+        fac.city.toLowerCase().includes(normalizedSearch) ||
         fac.address.toLowerCase().includes(normalizedSearch);
 
       // 2. Category filter
@@ -356,10 +357,10 @@ export default function MapPageLayout({
         matchesType = getFacilityCategory(fac.type) === filters.type;
       }
 
-      // 3. District filter
-      const matchesDistrict = filters.district === "Tümü" || fac.district === filters.district;
+      // 3. City filter
+      const matchesCity = filters.city === "Tümü" || fac.city === filters.city;
 
-      return matchesSearch && matchesType && matchesDistrict;
+      return matchesSearch && matchesType && matchesCity;
     });
   }, [facilities, filters, favorites, normalizedSearch]);
 
@@ -531,18 +532,18 @@ export default function MapPageLayout({
             </div>
 
             {/* Popular Shortcut Search Tags - dynamically adjusted */}
-            {popularDistricts.length > 0 && (
+            {popularCities.length > 0 && (
               <div className={`flex flex-col gap-1.5 border rounded-xl p-2.5 md:p-3 animate-fade-in transition-colors duration-300 ${
                 isDarkMode ? "bg-slate-800/40 border-slate-800" : "bg-slate-50/55 border-slate-150/40"
               }`}>
                 <span className={`text-[9.5px] font-extrabold tracking-wider uppercase ${isDarkMode ? "text-slate-500" : "text-slate-400"}`}>{t.popularDistrictsLabel}</span>
                 <div className="flex gap-1.5 flex-wrap">
-                  {popularDistricts.map((dist) => {
-                    const isSelected = filters.district === dist;
+                  {popularCities.map((cty) => {
+                    const isSelected = filters.city === cty;
                     return (
                       <button
-                        key={dist}
-                        onClick={() => setFilters((prev) => ({ ...prev, district: isSelected ? "Tümü" : dist }))}
+                        key={cty}
+                        onClick={() => setFilters((prev) => ({ ...prev, city: isSelected ? "Tümü" : cty }))}
                         className={`text-[10.5px] font-bold px-2.5 py-1 rounded-lg border transition-all duration-200 cursor-pointer ${
                           isSelected
                             ? "bg-indigo-600 border-indigo-600 text-white shadow-sm"
@@ -551,13 +552,13 @@ export default function MapPageLayout({
                               : "bg-white hover:bg-indigo-50/50 border-slate-200 hover:border-indigo-150 text-slate-600 hover:text-indigo-700"
                         }`}
                       >
-                        📍 {dist}
+                        📍 {cty}
                       </button>
                     );
                   })}
-                  {filters.district !== "Tümü" && (
+                  {filters.city !== "Tümü" && (
                     <button
-                      onClick={() => setFilters((prev) => ({ ...prev, district: "Tümü" }))}
+                      onClick={() => setFilters((prev) => ({ ...prev, city: "Tümü" }))}
                       className={`text-[10.5px] font-extrabold px-2 py-1 border rounded-lg transition-all cursor-pointer ${
                         isDarkMode
                           ? "bg-rose-950/40 text-rose-300 border-rose-900/60 hover:bg-rose-900/30"
@@ -576,9 +577,9 @@ export default function MapPageLayout({
               <div className="flex items-center justify-between">
                 <span className={`text-[10px] font-extrabold uppercase tracking-wider ${isDarkMode ? "text-slate-500" : "text-slate-400"}`}>{t.filterDistricts}</span>
                 
-                {filters.search || filters.type !== "Tümü" || filters.district !== "Tümü" || filters.onlyFavorites || filters.onlyOpenNow ? (
+                {filters.search || filters.type !== "Tümü" || filters.city !== "Tümü" || filters.onlyFavorites || filters.onlyOpenNow ? (
                   <button
-                    onClick={() => setFilters({ search: "", type: "Tümü", district: "Tümü", onlyFavorites: false, onlyOpenNow: false })}
+                    onClick={() => setFilters({ search: "", type: "Tümü", city: "Tümü", onlyFavorites: false, onlyOpenNow: false })}
                     className={`text-xs font-extrabold cursor-pointer transition active:scale-95 px-2 py-0.5 rounded-md ${
                       isDarkMode
                         ? "text-rose-400 hover:text-rose-350 hover:bg-rose-950/20"
@@ -594,7 +595,7 @@ export default function MapPageLayout({
                 <button
                   onClick={() => setShowFiltersMobile(!showFiltersMobile)}
                   className={`flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-xs font-bold border transition duration-200 cursor-pointer ${
-                    showFiltersMobile || filters.district !== "Tümü"
+                    showFiltersMobile || filters.city !== "Tümü"
                       ? isDarkMode
                         ? "bg-indigo-950/50 text-indigo-300 border-indigo-850 shadow-sm"
                         : "bg-indigo-50 text-indigo-700 border-indigo-200 shadow-xs"
@@ -604,7 +605,7 @@ export default function MapPageLayout({
                   }`}
                 >
                   <SlidersHorizontal className="w-3.5 h-3.5" />
-                  <span>{filters.district !== "Tümü" ? `${language === "tr" ? "İlçe" : "District"}: ${filters.district}` : (language === "tr" ? "İlçeler" : "Districts")}</span>
+                  <span>{filters.city !== "Tümü" ? `${language === "tr" ? "İl" : "City"}: ${filters.city}` : (language === "tr" ? "İller" : "Cities")}</span>
                 </button>
 
                 <button
@@ -641,28 +642,28 @@ export default function MapPageLayout({
               </div>
             </div>
 
-            {/* District Selection Dropdown */}
-            {(showFiltersMobile || filters.district !== "Tümü") && (
+            {/* City Selection Dropdown */}
+            {(showFiltersMobile || filters.city !== "Tümü") && (
               <motion.div 
                 initial={{ opacity: 0, height: 0 }}
                 animate={{ opacity: 1, height: "auto" }}
                 exit={{ opacity: 0, height: 0 }}
                 className="pt-1.5 pb-0.5" 
-                id="district-dropdown-container"
+                id="city-dropdown-container"
               >
                 <label className={`block text-[10px] font-extrabold mb-1 uppercase tracking-wider ${isDarkMode ? "text-slate-500" : "text-slate-400"}`}>{t.selectDistrict}</label>
                 <select
-                  value={filters.district}
-                  onChange={(e) => setFilters((prev) => ({ ...prev, district: e.target.value }))}
+                  value={filters.city}
+                  onChange={(e) => setFilters((prev) => ({ ...prev, city: e.target.value }))}
                   className={`w-full text-xs border rounded-xl p-2.5 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 font-semibold transition transition-colors ${
                     isDarkMode
                       ? "bg-slate-800 border-slate-700 text-slate-200"
                       : "bg-slate-50 border-slate-200 text-slate-700"
                   }`}
                 >
-                  {uniqueDistricts.map((dist) => (
-                    <option key={dist} value={dist}>
-                      {dist === "Tümü" ? t.allDistricts : dist}
+                  {uniqueCities.map((cty) => (
+                    <option key={cty} value={cty}>
+                      {cty === "Tümü" ? t.allDistricts : cty}
                     </option>
                   ))}
                 </select>
@@ -1173,14 +1174,14 @@ export default function MapPageLayout({
                           </div>
                         )}
 
-                        <div className="flex gap-2.5">
+                        <div className="flex flex-col gap-2">
                           {routePolyline ? (
                             <button
                               onClick={() => {
-                                setRoutePolyline(null);
-                                setRouteStats(null);
+                                  setRoutePolyline(null);
+                                  setRouteStats(null);
                               }}
-                              className={`flex-grow text-center text-xs py-2.5 rounded-xl font-bold transition duration-200 cursor-pointer ${
+                              className={`w-full text-center text-xs py-2.5 rounded-xl font-bold transition duration-200 cursor-pointer ${
                                 isDarkMode
                                   ? "bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-slate-100"
                                   : "bg-slate-150 hover:bg-slate-200 hover:text-slate-950 text-slate-700"
@@ -1192,7 +1193,7 @@ export default function MapPageLayout({
                             <button
                               onClick={() => handleDrawRoute(selectedFacility)}
                               disabled={isCalculatingRoute || isGettingLocation}
-                              className="flex-grow text-center text-xs py-2.5 bg-indigo-600 hover:bg-indigo-705 disabled:opacity-50 text-white rounded-xl font-bold transition duration-200 flex items-center justify-center gap-1.5 cursor-pointer shadow-sm shadow-indigo-600/10"
+                              className="w-full text-center text-xs py-2.5 bg-indigo-600 hover:bg-indigo-705 disabled:opacity-50 text-white rounded-xl font-bold transition duration-200 flex items-center justify-center gap-1.5 cursor-pointer shadow-sm shadow-indigo-600/10 animate-pulse-subtle"
                             >
                               <Navigation className="w-3.5 h-3.5 fill-current rotate-45" />
                               {isGettingLocation ? t.drawRouteGettingGPS : t.drawRouteBtn}
@@ -1205,14 +1206,16 @@ export default function MapPageLayout({
                             )}`}
                             target="_blank"
                             rel="noreferrer"
-                            className={`px-4.5 rounded-xl transition duration-200 flex items-center justify-center border ${
+                            className={`w-full py-2.5 rounded-xl transition duration-200 flex items-center justify-center gap-2 border text-[11px] font-bold ${
                               isDarkMode
-                                ? "bg-slate-800 hover:bg-slate-700 border-slate-705 text-slate-300 hover:text-white"
-                                : "bg-slate-101 hover:bg-slate-200 text-slate-600 border-slate-220/50 hover:text-slate-900"
+                                ? "bg-slate-800 hover:bg-slate-700 border-slate-705 text-slate-200 hover:text-white"
+                                : "bg-white hover:bg-slate-50 text-slate-700 border-slate-200 hover:text-slate-900 shadow-2xs"
                             }`}
                             title={t.openGoogleMapsTitle}
                           >
-                            <Compass className="w-4 h-4 text-slate-400 group-hover:text-slate-200" />
+                            <span className="text-sm select-none">🗺️</span>
+                            <span>{language === "tr" ? "Google Haritalar'da Aç" : "Open in Google Maps"}</span>
+                            <ExternalLink className="w-3 h-3 opacity-60 ml-0.5" />
                           </a>
                         </div>
                       </div>
