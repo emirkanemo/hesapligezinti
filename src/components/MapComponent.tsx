@@ -32,51 +32,80 @@ function MapController({ center, zoom, routePolyline }: MapControllerProps) {
 }
 
 // Custom icons styled styled minimally with HTML/CSS via L.divIcon
-const createCustomIcon = (type: string, isSelected: boolean, isDarkMode: boolean) => {
+const createCustomIcon = (type: string, isSelected: boolean, isDarkMode: boolean, index: number = 0) => {
   let colorClass = "bg-indigo-600 text-white hover:bg-indigo-500 border-white";
   let iconHtml = "🍽️"; 
+  let accentColor = "indigo";
 
   const category = getFacilityCategory(type);
   
   if (category === "Öğrenci Restoranı") {
-    colorClass = "bg-emerald-600 text-white hover:bg-emerald-500 border-white";
+    colorClass = isSelected 
+      ? "bg-gradient-to-br from-emerald-400 via-emerald-600 to-teal-800 text-white hover:brightness-110"
+      : "bg-emerald-600 text-white hover:bg-emerald-500 border-white";
     iconHtml = "🥣"; 
+    accentColor = "emerald";
   } else if (category === "Sosyal Kafe") {
-    colorClass = "bg-amber-500 text-white hover:bg-amber-400 border-white";
+    colorClass = isSelected
+      ? "bg-gradient-to-br from-amber-400 via-amber-500 to-orange-600 text-white hover:brightness-110"
+      : "bg-amber-500 text-white hover:bg-amber-400 border-white";
     iconHtml = "☕"; 
+    accentColor = "amber";
   } else {
-    colorClass = "bg-indigo-600 text-white hover:bg-indigo-500 border-white";
+    colorClass = isSelected
+      ? "bg-gradient-to-br from-indigo-400 via-indigo-600 to-violet-800 text-white hover:brightness-110"
+      : "bg-indigo-600 text-white hover:bg-indigo-500 border-white";
     iconHtml = "🍽️"; 
+    accentColor = "indigo";
   }
 
-  const wrapperSizeClass = isSelected ? "w-9 h-9" : "w-7.5 h-7.5";
-  const emojiSizeClass = isSelected ? "text-xs" : "text-[10px]";
-  const arrowSizeClass = isSelected ? "w-2.5 h-2.5 -mt-1" : "w-1.5 h-1.5 -mt-0.5";
+  const wrapperSizeClass = isSelected ? "w-10.5 h-10.5 shadow-[0_0_20px_rgba(99,102,241,0.4)]" : "w-7.5 h-7.5 shadow-sm";
+  const emojiSizeClass = isSelected ? "text-sm flex items-center justify-center scale-110 duration-200" : "text-[10px]";
+  const arrowSizeClass = isSelected ? "w-3 h-3 -mt-1.5" : "w-1.5 h-1.5 -mt-0.5";
   const selectedRingClass = isSelected
-    ? "ring-2 ring-indigo-500/80 ring-offset-1 shadow-lg scale-110 z-[9999]"
-    : "shadow-sm hover:scale-105";
+    ? "ring-3 ring-indigo-400/90 ring-offset-1 scale-115 z-[9999]"
+    : "hover:scale-105";
 
   const ringBorderColor = isDarkMode ? "border-slate-800" : "border-white/95";
   const arrowBorderColor = isDarkMode ? "border-slate-800" : "border-white/90";
 
+  // Emulate framer-motion stagger delay with dynamic inline transition delay
+  const staggerDelay = Math.min(index * 0.035, 1.2);
+
+  // Select glow/radar colors based on accent color
+  const waveColorClass = accentColor === "emerald" 
+    ? "bg-emerald-500" 
+    : accentColor === "amber" 
+    ? "bg-amber-500" 
+    : "bg-indigo-500";
+
   return L.divIcon({
     html: `
-      <div class="relative flex flex-col items-center justify-center transition-all duration-300">
-        <!-- Selected Dynamic Pulse Backdrop -->
-        ${isSelected ? `<div class="absolute -inset-1.5 bg-indigo-500/25 rounded-full animate-ping duration-1000"></div>` : ""}
+      <div class="animate-marker-intro relative flex flex-col items-center justify-center transition-all duration-300" style="animation-delay: ${staggerDelay}s; z-index: ${isSelected ? '99999' : '100'};">
+        
+        <!-- Interactive Multi-Radar Waves if selected -->
+        ${isSelected ? `
+          <div class="absolute h-14 w-14 rounded-full ${waveColorClass}/30 animate-selected-radar-1 pointer-events-none -translate-y-1"></div>
+          <div class="absolute h-14 w-14 rounded-full ${waveColorClass}/20 animate-selected-radar-2 pointer-events-none -translate-y-1"></div>
+          
+          <!-- Eye-catching floating dynamic arrow pointer above -->
+          <div class="absolute -top-[23px] z-[100000] animate-selected-bob flex flex-col items-center select-none pointer-events-none">
+            <span class="text-xs filter drop-shadow-[0_2px_4px_rgba(245,158,11,0.5)]">✨</span>
+          </div>
+        ` : ""}
         
         <!-- Main Circular Body -->
-        <div class="flex items-center justify-center rounded-full select-none border ${ringBorderColor} ${wrapperSizeClass} ${colorClass} ${selectedRingClass} transition-all duration-300">
+        <div class="flex items-center justify-center rounded-full select-none border-2 ${ringBorderColor} ${wrapperSizeClass} ${colorClass} ${selectedRingClass} transition-all duration-300">
           <span class="${emojiSizeClass} leading-none font-sans font-normal">${iconHtml}</span>
         </div>
         
         <!-- Downward Pin Pointer Tip -->
-        <div class="rotate-45 border-r border-b ${arrowBorderColor} ${arrowSizeClass} ${colorClass.split(" ")[0]} transition-all duration-300 shadow-2xs"></div>
+        <div class="rotate-45 border-r border-b ${arrowBorderColor} ${arrowSizeClass} ${colorClass.split(" ")[0]} transition-all duration-300 shadow-sm"></div>
       </div>
     `,
     className: "custom-leaflet-pin-wrapper", // Prevents default square container backgrounds of leaflet
-    iconSize: [36, 42],
-    iconAnchor: [18, 38], // Point precisely to the tip of downward arrow
+    iconSize: [42, 52],
+    iconAnchor: [21, 46], // Point precisely to the tip of downward arrow
   });
 };
 
@@ -87,6 +116,7 @@ interface MapComponentProps {
   userLocation: [number, number] | null;
   routePolyline?: [number, number][] | null;
   isDarkMode?: boolean;
+  language?: "tr" | "en";
 }
 
 export default function MapComponent({
@@ -96,6 +126,7 @@ export default function MapComponent({
   userLocation,
   routePolyline,
   isDarkMode = false,
+  language = "tr",
 }: MapComponentProps) {
   // Center is selected facility coordinate, or default Istanbul Center scale
   const defaultCenter: [number, number] = [41.0082, 28.9784];
@@ -174,22 +205,31 @@ export default function MapComponent({
         {userLocation && (
           <Marker position={userLocation} icon={userIcon}>
             <Popup>
-              <div className="p-1 font-sans">
-                <p className="font-bold text-slate-800 text-sm">Buradasınız</p>
-                <p className="text-xs text-slate-500 mt-1">Sizin konumunuz</p>
+              <div className="p-1 font-sans text-left">
+                {language === "tr" ? (
+                  <>
+                    <p className="font-bold text-slate-800 text-sm">Buradasınız</p>
+                    <p className="text-xs text-slate-500 mt-1">Sizin konumunuz</p>
+                  </>
+                ) : (
+                  <>
+                    <p className="font-bold text-slate-800 text-sm">You are here</p>
+                    <p className="text-xs text-slate-500 mt-1">Your location</p>
+                  </>
+                )}
               </div>
             </Popup>
           </Marker>
         )}
 
         {/* Render all facility pins */}
-        {facilities.map((fac) => {
+        {facilities.map((fac, index) => {
           const isSelected = selectedFacility?.id === fac.id;
           return (
             <Marker
-              key={fac.id}
+              key={`${fac.id}-${facilities.length}`}
               position={[fac.lat, fac.lng]}
-              icon={createCustomIcon(fac.type, isSelected, isDarkMode)}
+              icon={createCustomIcon(fac.type, isSelected, isDarkMode, index)}
               eventHandlers={{
                 click: () => {
                   onSelectFacility(fac);

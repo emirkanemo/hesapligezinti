@@ -3,7 +3,8 @@ import { Page, Facility } from "./types";
 import LandingPage from "./components/LandingPage";
 import MapPageLayout from "./components/MapPageLayout";
 import { motion, AnimatePresence } from "motion/react";
-import { Utensils } from "lucide-react";
+import { Utensils, Globe } from "lucide-react";
+import { translations, Language } from "./translations";
 
 const SPREADSHEET_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vS4-Q2xzTPS_zlsMKJ4sMdP17Nb56u1eDEUJluu2gc1DnYxenXOclGqTKGSOEaRXBAXVHJfyQ6WJHBz/pub?output=csv";
 
@@ -119,6 +120,27 @@ export default function App() {
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
+  // Internationalization language state
+  const [language, setLanguage] = useState<Language>(() => {
+    try {
+      const saved = localStorage.getItem("language");
+      return (saved === "en" || saved === "tr") ? saved as Language : "tr";
+    } catch {
+      return "tr";
+    }
+  });
+
+  const handleSetLanguage = (lang: Language) => {
+    setLanguage(lang);
+    try {
+      localStorage.setItem("language", lang);
+    } catch (err) {
+      console.error("Local storage language save failure:", err);
+    }
+  };
+
+  const t = translations[language];
+
   // Fetch facilities list from backend Express API on mount
   const fetchFacilitiesData = async (forceRefresh = false) => {
     try {
@@ -185,7 +207,18 @@ export default function App() {
 
   if (isLoading && facilities.length === 0) {
     return (
-      <div className="min-h-screen bg-indigo-950 flex flex-col items-center justify-center text-white font-sans">
+      <div className="min-h-screen bg-indigo-950 flex flex-col items-center justify-center text-white font-sans relative">
+         {/* Language switcher overlay in loading screen */}
+         <div className="absolute top-6 right-6 flex items-center gap-2">
+            <button
+              onClick={() => handleSetLanguage(language === "tr" ? "en" : "tr")}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-white/10 text-white hover:bg-white/15 transition-all active:scale-95 border border-white/10"
+            >
+              <Globe className="w-3.5 h-3.5 text-indigo-300" />
+              <span>{language === "tr" ? "English" : "Türkçe"}</span>
+            </button>
+         </div>
+
         <motion.div
           animate={{ rotate: 360 }}
           transition={{ repeat: Infinity, duration: 2, ease: "linear" }}
@@ -194,11 +227,11 @@ export default function App() {
           <Utensils className="w-6 h-6 text-emerald-400" />
         </motion.div>
         
-        <h2 className="text-xl font-bold font-display tracking-wide mb-2 animate-pulse">
-          İstanbul Sosyal Tesis ve Restoranları Verisi Hazırlanıyor
+        <h2 className="text-xl font-bold font-display tracking-wide mb-2 animate-pulse px-6 text-center">
+          {t.loadingTitle}
         </h2>
-        <p className="text-slate-400 text-xs text-center max-w-sm">
-          Google Sheets güncel verileri çekiliyor ve koordinatlar önbellekten optimize ediliyor...
+        <p className="text-slate-400 text-xs text-center max-w-sm px-6 leading-relaxed">
+          {t.loadingSubtitle}
         </p>
       </div>
     );
@@ -219,6 +252,8 @@ export default function App() {
               onExploreClick={() => setCurrentPage("map")}
               featuredFacilities={featuredList}
               onSelectFeatured={handleSelectFeatured}
+              language={language}
+              onLanguageChange={handleSetLanguage}
             />
           </motion.div>
         ) : (
@@ -239,6 +274,8 @@ export default function App() {
               }}
               onRefreshData={handleRefresh}
               isLoading={isLoading}
+              language={language}
+              onLanguageChange={handleSetLanguage}
             />
           </motion.div>
         )}

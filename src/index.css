@@ -45,6 +45,30 @@
   animation: pin-pulse 2s infinite ease-in-out;
 }
 
+/* Staggered spring/elastic entry animation. emulating framer-motion physics */
+@keyframes marker-drop-bounce {
+  0% {
+    transform: scale(0.2) translateY(-25px);
+    opacity: 0;
+  }
+  55% {
+    transform: scale(1.15) translateY(4px);
+    opacity: 0.85;
+  }
+  80% {
+    transform: scale(0.93) translateY(-2px);
+    opacity: 0.95;
+  }
+  100% {
+    transform: scale(1) translateY(0);
+    opacity: 1;
+  }
+}
+
+.animate-marker-intro {
+  animation: marker-drop-bounce 0.65s cubic-bezier(0.175, 0.885, 0.32, 1.275) both;
+}
+
 /* Custom styling for leaflet tooltips and popups */
 @keyframes tooltip-intro {
   from {
@@ -128,3 +152,53 @@
 ::-webkit-scrollbar-thumb:hover {
   background: #94a3b8;
 }
+
+/* Eye-catching Selected Pin Animations */
+@keyframes selected-arrow-bob {
+  0%, 100% {
+    transform: translateY(0) scale(1);
+    filter: drop-shadow(0 3px 6px rgba(99, 102, 241, 0.25));
+  }
+  50% {
+    transform: translateY(-6px) scale(1.15);
+    filter: drop-shadow(0 8px 16px rgba(99, 102, 241, 0.5));
+  }
+}
+
+@keyframes selected-radar-pulse {
+  0% {
+    transform: scale(0.65);
+    opacity: 0.95;
+  }
+  100% {
+    transform: scale(2.3);
+    opacity: 0;
+  }
+}
+
+@keyframes selected-spin-glow {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+.animate-selected-bob {
+  animation: selected-arrow-bob 1.6s infinite ease-in-out;
+}
+
+.animate-selected-radar-1 {
+  animation: selected-radar-pulse 2.4s infinite cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.animate-selected-radar-2 {
+  animation: selected-radar-pulse 2.4s infinite cubic-bezier(0.16, 1, 0.3, 1);
+  animation-delay: 1.2s;
+}
+
+.animate-spin-slow {
+  animation: selected-spin-glow 12s infinite linear;
+}
+

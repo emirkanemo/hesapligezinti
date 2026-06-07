@@ -1,8 +1,10 @@
 import React, { useState, useMemo, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { Search, MapPin, Clock, ArrowLeft, RefreshCw, Compass, SlidersHorizontal, Map, ChevronRight, Navigation, Heart, Share2, Copy, Check, ExternalLink, Info, Phone, X, Sun, Moon } from "lucide-react";
+import { Search, MapPin, Clock, ArrowLeft, RefreshCw, Compass, SlidersHorizontal, Map, ChevronRight, Navigation, Heart, Share2, Copy, Check, ExternalLink, Info, Phone, X, Sun, Moon, Globe } from "lucide-react";
 import { Facility, FilterState, getFacilityCategory } from "../types";
 import MapComponent from "./MapComponent";
+import InteractiveLogo from "./InteractiveLogo";
+import { translations, Language } from "../translations";
 
 interface MapPageLayoutProps {
   facilities: Facility[];
@@ -11,6 +13,8 @@ interface MapPageLayoutProps {
   onBackToLanding: () => void;
   onRefreshData: () => Promise<void>;
   isLoading: boolean;
+  language: Language;
+  onLanguageChange: (lang: Language) => void;
 }
 
 export default function MapPageLayout({
@@ -20,7 +24,10 @@ export default function MapPageLayout({
   onBackToLanding,
   onRefreshData,
   isLoading,
+  language,
+  onLanguageChange,
 }: MapPageLayoutProps) {
+  const t = translations[language];
   // Local Filter state
   const [filters, setFilters] = useState<FilterState>({
     search: "",
@@ -120,6 +127,15 @@ export default function MapPageLayout({
     setFacilityShared(false);
   }, [selectedFacility]);
 
+  // Helper to translate facility types on the fly
+  const getTranslatedTypeTab = (typeStr: string) => {
+    if (typeStr === "Tümü") return t.allCategoriesTab;
+    if (typeStr === "Sosyal Tesis") return t.catSocialFacility;
+    if (typeStr === "Öğrenci Restoranı" || typeStr.toLowerCase().includes("kent lokantası") || typeStr.toLowerCase().includes("öğrenci")) return t.catStudentRestaurant;
+    if (typeStr === "Sosyal Kafe" || typeStr.toLowerCase().includes("kafe") || typeStr.toLowerCase().includes("nevmekan")) return t.catSocialCafe;
+    return typeStr;
+  };
+
   // Copy to clipboard helper
   const handleCopyAddress = (address: string) => {
     try {
@@ -133,7 +149,10 @@ export default function MapPageLayout({
 
   // Share facility helper
   const handleShareFacility = (facility: Facility) => {
-    const text = `${facility.name} - ${facility.type}\nİlçe: ${facility.district}\nAdres: ${facility.address}\nKonum: https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${facility.name} ${facility.district} ${facility.city || "Istanbul"}`)}`;
+    const districtHeader = language === "tr" ? "İlçe" : "District";
+    const addressHeader = language === "tr" ? "Adres" : "Address";
+    const locationHeader = language === "tr" ? "Konum" : "Location";
+    const text = `${facility.name} - ${getTranslatedTypeTab(facility.type)}\n${districtHeader}: ${facility.district}\n${addressHeader}: ${facility.address}\n${locationHeader}: https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${facility.name} ${facility.district} ${facility.city || "Istanbul"}`)}`;
     try {
       if (navigator.share) {
         navigator.share({
@@ -154,7 +173,7 @@ export default function MapPageLayout({
   // Check if a facility is open right now
   const getOpenStatus = (opening: string, closing: string) => {
     try {
-      if (!opening || !closing) return { isOpen: true, text: "Hizmet Saatleri Aktif" };
+      if (!opening || !closing) return { isOpen: true, text: t.statusActiveDefault };
       
       const now = new Date();
       // Turkish time zone buffer or simple local time check is perfect
@@ -171,27 +190,27 @@ export default function MapPageLayout({
 
       if (endMin > startMin) {
         if (currentMin >= startMin && currentMin < endMin) {
-          return { isOpen: true, text: `Şu An Açık • Kapanış: ${closing}` };
+          return { isOpen: true, text: `${t.statusOpenLabel}${closing}` };
         } else {
-          return { isOpen: false, text: `Şu An Kapalı • Açılış: ${opening}` };
+          return { isOpen: false, text: `${t.statusClosedLabel}${opening}` };
         }
       } else {
         // Overlay midnight transition support (e.g. 22:00 to 02:00)
         if (currentMin >= startMin || currentMin < endMin) {
-          return { isOpen: true, text: `Şu An Açık • Kapanış: ${closing}` };
+          return { isOpen: true, text: `${t.statusOpenLabel}${closing}` };
         } else {
-          return { isOpen: false, text: `Şu An Kapalı • Açılış: ${opening}` };
+          return { isOpen: false, text: `${t.statusClosedLabel}${opening}` };
         }
       }
     } catch {
-      return { isOpen: true, text: "Hizmet Saatleri Aktif" };
+      return { isOpen: true, text: t.statusActiveDefault };
     }
   };
 
   // Capture user GPS location for routing
   const handleGetUserLocation = () => {
     if (!navigator.geolocation) {
-      setRouteError("Cihazınızda GPS desteği bulunmuyor.");
+      setRouteError(t.noGPS);
       return;
     }
     setIsGettingLocation(true);
@@ -203,7 +222,7 @@ export default function MapPageLayout({
       },
       (error) => {
         console.error("Geolocation error:", error);
-        setRouteError("Konum bilgisi alınamadı. Lütfen tarayıcı izinlerinizi kontrol edin ve konumu etkinleştirin.");
+        setRouteError(t.cannotGetLocation);
         setIsGettingLocation(false);
       }
     );
@@ -223,9 +242,12 @@ export default function MapPageLayout({
     if (mins >= 60) {
       const hrs = Math.floor(mins / 60);
       const remainingMins = mins % 60;
-      return `${hrs} sa ${remainingMins} dk`;
+      const hoursStr = language === "tr" ? "sa" : "hr";
+      const minsStr = language === "tr" ? "dk" : "min";
+      return `${hrs} ${hoursStr} ${remainingMins} ${minsStr}`;
     }
-    return `${mins} dk`;
+    const minsStr = language === "tr" ? "dk" : "min";
+    return `${mins} ${minsStr}`;
   };
 
   // Perform OSM Routing query and parse coordinates
@@ -241,12 +263,12 @@ export default function MapPageLayout({
       );
       
       if (!response.ok) {
-        throw new Error("Rota servisine ulaşılamadı. Lütfen internet bağlantınızı kontrol edip tekrar deneyin.");
+        throw new Error(language === "tr" ? "Rota servisine ulaşılamadı. Lütfen internet bağlantınızı kontrol edip tekrar deneyin." : "Inaccessible routing server. Please verify your internet connection and retry.");
       }
       
       const data = await response.json();
       if (data.code !== "Ok" || !data.routes || data.routes.length === 0) {
-        throw new Error("Mevcut konumunuzdan bu mekana karayolu rotası bulunamadı.");
+        throw new Error(t.routeNoPathError);
       }
       
       const route = data.routes[0];
@@ -259,7 +281,7 @@ export default function MapPageLayout({
       });
     } catch (err: any) {
       console.error("OSRM Routing Error:", err);
-      setRouteError(err.message || "Yol tarifi hesaplanırken beklenmedik bir hata oluştu.");
+      setRouteError(err.message || (language === "tr" ? "Yol tarifi hesaplanırken beklenmedik bir hata oluştu." : "An unexpected error occurred while calculating the route."));
     } finally {
       setIsCalculatingRoute(false);
     }
@@ -271,7 +293,7 @@ export default function MapPageLayout({
       calculateRoute(userLocation, facility);
     } else {
       if (!navigator.geolocation) {
-        setRouteError("Cihazınızda GPS desteği bulunmuyor.");
+        setRouteError(t.noGPS);
         return;
       }
       setIsGettingLocation(true);
@@ -285,7 +307,7 @@ export default function MapPageLayout({
         },
         (error) => {
           console.error("Geolocation error:", error);
-          setRouteError("Konum izinleri engellenmiş veya alınamadı. Rota çizebilmek için konum izni vermeniz gerekir.");
+          setRouteError(language === "tr" ? "Konum izinleri engellenmiş veya alınamadı. Rota çizebilmek için konum izni vermeniz gerekir." : "Location permission blocked or failed. Geolocation is required to trace paths.");
           setIsGettingLocation(false);
         }
       );
@@ -353,34 +375,50 @@ export default function MapPageLayout({
                 ? "border-slate-700 bg-slate-800 hover:bg-slate-700 text-slate-200" 
                 : "border-slate-200 bg-white hover:bg-slate-50 text-slate-600"
             }`}
-            title="Geri Dön"
+            title={t.backButton}
           >
             <ArrowLeft className="w-5 h-5" />
           </button>
           
-          <div className="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center text-white shadow-sm shrink-0">
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-            </svg>
-          </div>
-          
-          <div>
-            <span className={`text-lg font-extrabold tracking-tight font-display ${isDarkMode ? "text-slate-100" : "text-slate-800"}`}>
-              Hesaplı<span className="text-indigo-600 font-black">Gezinti</span>
-            </span>
-            <span className={`hidden sm:inline-block ml-2 text-xs px-2 py-0.5 rounded-md font-semibold border ${
+          <div 
+            className="flex items-center gap-2 active:scale-98 transition duration-150" 
+            onClick={onBackToLanding} 
+            title={language === "tr" ? "Ana Sayfaya Dön" : "Go to Home Page"}
+          >
+            <InteractiveLogo language={language} isDarkMode={isDarkMode} />
+            <span className={`hidden md:inline-block ml-0.5 text-xs px-2 py-0.5 rounded-md font-semibold border shrink-0 ${
               isDarkMode 
                 ? "bg-indigo-950/40 text-indigo-300 border-indigo-900/60" 
                 : "bg-indigo-50 text-indigo-700 border-indigo-150"
-            }`}>Rehberi</span>
-            <p className={`text-[10px] leading-none mt-0.5 ${isDarkMode ? "text-slate-400" : "text-slate-500"}`}>
-              {filteredFacilities.length} Mekan bulundu • Canlı Harita
+            }`}>{t.guideLabel}</span>
+          </div>
+          
+          <div className="hidden lg:block ml-2 border-l pl-3 border-slate-200 dark:border-slate-800 text-left">
+            <p className={`text-[10px] leading-tight font-medium ${isDarkMode ? "text-slate-400" : "text-slate-500"}`}>
+              {filteredFacilities.length} {language === "tr" ? "Mekan bulundu" : "Venues found"}
             </p>
+            <span className="inline-flex items-center gap-1 text-[9px] font-bold text-emerald-500 uppercase tracking-wider mt-0.5">
+              <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full inline-block animate-pulse"></span>
+              {language === "tr" ? "Canlı Harita" : "Live Map"}
+            </span>
           </div>
         </div>
 
         <div className="flex items-center gap-2">
+          {/* Universal Language Switcher Toggle */}
+          <button
+            onClick={() => onLanguageChange(language === "tr" ? "en" : "tr")}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold border transition duration-300 cursor-pointer active:scale-95 ${
+              isDarkMode
+                ? "bg-slate-850 hover:bg-slate-800 text-slate-300 border-slate-700"
+                : "bg-indigo-50 hover:bg-indigo-100 text-indigo-805 border-indigo-150"
+            }`}
+            title={language === "tr" ? "English" : "Türkçe"}
+          >
+            <Globe className="w-3.5 h-3.5 text-indigo-600" />
+            <span>{language === "tr" ? "EN" : "TR"}</span>
+          </button>
+
           {/* Theme switcher toggle */}
           <button
             onClick={() => setIsDarkMode(!isDarkMode)}
@@ -389,17 +427,17 @@ export default function MapPageLayout({
                 ? "bg-slate-800 text-amber-400 border-slate-700 hover:bg-slate-750 hover:text-amber-300 shadow-sm"
                 : "bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100 hover:text-amber-800"
             }`}
-            title={isDarkMode ? "Sabah Moduna Geç" : "Gece Moduna Geç"}
+            title={isDarkMode ? (language === "tr" ? "Sabah Moduna Geç" : "Switch to Day Mode") : (language === "tr" ? "Gece Moduna Geç" : "Switch to Night Mode")}
           >
             {isDarkMode ? (
               <>
                 <Sun className="w-3.5 h-3.5 text-amber-400" />
-                <span className="hidden sm:inline">Sabah Modu</span>
+                <span className="hidden sm:inline">{t.morningMode}</span>
               </>
             ) : (
               <>
                 <Moon className="w-3.5 h-3.5 text-amber-600 fill-amber-500/10" />
-                <span className="hidden sm:inline">Gece Modu</span>
+                <span className="hidden sm:inline">{t.nightMode}</span>
               </>
             )}
           </button>
@@ -420,7 +458,7 @@ export default function MapPageLayout({
           >
             <Navigation className={`w-3.5 h-3.5 ${isGettingLocation ? "animate-spin" : ""}`} />
             <span className="hidden sm:inline">
-              {userLocation ? "Konumum Aktif" : "Konumumu Bul"}
+              {isGettingLocation ? t.drawRouteGettingGPS : (userLocation ? t.myLocationActive : t.findMyLocation)}
             </span>
           </button>
 
@@ -433,7 +471,7 @@ export default function MapPageLayout({
                 ? "border-slate-700 bg-slate-800 text-slate-250 hover:bg-slate-700 hover:text-indigo-400"
                 : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50 hover:text-indigo-600"
             }`}
-            title="Yenile (Google Sheets'ten Çek)"
+            title={language === "tr" ? "Yenile (Google Sheets'ten Çek)" : "Sync (Fetch from Google Sheets)"}
           >
             <RefreshCw className={`w-4 h-4 ${isLoading ? "animate-spin" : ""}`} />
           </button>
@@ -442,7 +480,7 @@ export default function MapPageLayout({
 
       {/* Main Content Area */}
       <div className="flex-grow flex flex-col lg:flex-row overflow-hidden relative">
-        {/* Sidebar Panel - Right or Left (Let's make it Left pane, covering 12-cols: lg:col-span-4 or fixed width) */}
+        {/* Sidebar Panel - Left pane */}
         <div className={`w-full lg:w-[400px] border-b lg:border-b-0 lg:border-r flex flex-col h-[40vh] lg:h-full shrink-0 shadow-sm z-10 overflow-hidden transition-colors duration-300 ${
           isDarkMode ? "bg-slate-900 border-slate-800" : "bg-white border-slate-200"
         }`}>
@@ -455,12 +493,12 @@ export default function MapPageLayout({
             <div className="relative group">
               <Search className={`w-4 h-4 absolute left-3.5 top-3.5 transition-colors duration-300 ${
                 isSearchFocused 
-                  ? "text-indigo-500 shadow-sm" 
+                  ? "text-indigo-505 shadow-sm" 
                   : isDarkMode ? "text-slate-500" : "text-slate-400"
               }`} />
               <input
                 type="text"
-                placeholder="Tesis adı, ilçe veya adres ara..."
+                placeholder={t.searchPlaceholder}
                 value={filters.search}
                 onFocus={() => setIsSearchFocused(true)}
                 onBlur={() => setTimeout(() => setIsSearchFocused(false), 250)}
@@ -497,7 +535,7 @@ export default function MapPageLayout({
               <div className={`flex flex-col gap-1.5 border rounded-xl p-2.5 md:p-3 animate-fade-in transition-colors duration-300 ${
                 isDarkMode ? "bg-slate-800/40 border-slate-800" : "bg-slate-50/55 border-slate-150/40"
               }`}>
-                <span className={`text-[9.5px] font-extrabold tracking-wider uppercase ${isDarkMode ? "text-slate-500" : "text-slate-400"}`}>En Popüler İlçeler</span>
+                <span className={`text-[9.5px] font-extrabold tracking-wider uppercase ${isDarkMode ? "text-slate-500" : "text-slate-400"}`}>{t.popularDistrictsLabel}</span>
                 <div className="flex gap-1.5 flex-wrap">
                   {popularDistricts.map((dist) => {
                     const isSelected = filters.district === dist;
@@ -526,7 +564,7 @@ export default function MapPageLayout({
                           : "bg-rose-50 text-rose-600 border-rose-150 hover:bg-rose-100"
                       }`}
                     >
-                      Kaldır
+                      {t.clearFilters}
                     </button>
                   )}
                 </div>
@@ -536,7 +574,7 @@ export default function MapPageLayout({
             {/* Quick Filters Row with Interactive states */}
             <div className="flex flex-col gap-2.5 pt-0.5">
               <div className="flex items-center justify-between">
-                <span className={`text-[10px] font-extrabold uppercase tracking-wider ${isDarkMode ? "text-slate-500" : "text-slate-400"}`}>Hızlı Filtrele</span>
+                <span className={`text-[10px] font-extrabold uppercase tracking-wider ${isDarkMode ? "text-slate-500" : "text-slate-400"}`}>{t.filterDistricts}</span>
                 
                 {filters.search || filters.type !== "Tümü" || filters.district !== "Tümü" || filters.onlyFavorites || filters.onlyOpenNow ? (
                   <button
@@ -547,7 +585,7 @@ export default function MapPageLayout({
                         : "text-rose-600 hover:text-rose-700 hover:bg-rose-50"
                     }`}
                   >
-                    Filtreleri Temizle
+                    {t.quickFilters}
                   </button>
                 ) : null}
               </div>
@@ -558,7 +596,7 @@ export default function MapPageLayout({
                   className={`flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-xs font-bold border transition duration-200 cursor-pointer ${
                     showFiltersMobile || filters.district !== "Tümü"
                       ? isDarkMode
-                        ? "bg-indigo-950/50 text-indigo-300 border-indigo-805 shadow-sm"
+                        ? "bg-indigo-950/50 text-indigo-300 border-indigo-850 shadow-sm"
                         : "bg-indigo-50 text-indigo-700 border-indigo-200 shadow-xs"
                       : isDarkMode
                         ? "bg-slate-800 hover:bg-slate-700 text-slate-300 border-slate-700"
@@ -566,7 +604,7 @@ export default function MapPageLayout({
                   }`}
                 >
                   <SlidersHorizontal className="w-3.5 h-3.5" />
-                  <span>{filters.district !== "Tümü" ? `İlçe: ${filters.district}` : "İlçeler"}</span>
+                  <span>{filters.district !== "Tümü" ? `${language === "tr" ? "İlçe" : "District"}: ${filters.district}` : (language === "tr" ? "İlçeler" : "Districts")}</span>
                 </button>
 
                 <button
@@ -581,8 +619,8 @@ export default function MapPageLayout({
                         : "bg-slate-50 hover:bg-slate-100 text-slate-600 border-slate-200/60"
                   }`}
                 >
-                  <Clock className={`w-3.5 h-3.5 transition-all duration-300 ${filters.onlyOpenNow ? "text-emerald-555 scale-105 animate-pulse" : "text-slate-400"}`} />
-                  <span>Şu An Açık</span>
+                  <Clock className={`w-3.5 h-3.5 transition-all duration-300 ${filters.onlyOpenNow ? "text-emerald-500 scale-105 animate-pulse" : "text-slate-400"}`} />
+                  <span>{t.filterOpenNow}</span>
                 </button>
 
                 <button
@@ -597,8 +635,8 @@ export default function MapPageLayout({
                         : "bg-slate-50 hover:bg-slate-100 text-slate-600 border-slate-200/60"
                   }`}
                 >
-                  <Heart className={`w-3.5 h-3.5 transition-all duration-300 ${filters.onlyFavorites ? "fill-rose-500 text-rose-500 scale-105" : "text-slate-405"}`} />
-                  <span>Favorilerim ({favorites.length})</span>
+                  <Heart className={`w-3.5 h-3.5 transition-all duration-300 ${filters.onlyFavorites ? "fill-rose-500 text-rose-500 scale-105" : "text-slate-400"}`} />
+                  <span>{t.filterFavorites} ({favorites.length})</span>
                 </button>
               </div>
             </div>
@@ -612,7 +650,7 @@ export default function MapPageLayout({
                 className="pt-1.5 pb-0.5" 
                 id="district-dropdown-container"
               >
-                <label className={`block text-[10px] font-extrabold mb-1 uppercase tracking-wider ${isDarkMode ? "text-slate-500" : "text-slate-450"}`}>İlçe Seçin</label>
+                <label className={`block text-[10px] font-extrabold mb-1 uppercase tracking-wider ${isDarkMode ? "text-slate-500" : "text-slate-400"}`}>{t.selectDistrict}</label>
                 <select
                   value={filters.district}
                   onChange={(e) => setFilters((prev) => ({ ...prev, district: e.target.value }))}
@@ -624,7 +662,7 @@ export default function MapPageLayout({
                 >
                   {uniqueDistricts.map((dist) => (
                     <option key={dist} value={dist}>
-                      {dist === "Tümü" ? "Tüm İlçeler" : dist}
+                      {dist === "Tümü" ? t.allDistricts : dist}
                     </option>
                   ))}
                 </select>
@@ -633,21 +671,21 @@ export default function MapPageLayout({
 
             {/* Quick Badges Category row */}
             <div className="flex gap-1.5 overflow-x-auto pt-1 no-scrollbar shrink-0">
-              {facilityTypes.map((t) => {
-                const isActive = filters.type === t;
+              {facilityTypes.map((tCategory) => {
+                const isActive = filters.type === tCategory;
                 return (
                   <button
-                    key={t}
-                    onClick={() => setFilters((prev) => ({ ...prev, type: t }))}
+                    key={tCategory}
+                    onClick={() => setFilters((prev) => ({ ...prev, type: tCategory }))}
                     className={`whitespace-nowrap px-3.5 py-2 rounded-xl text-xs font-bold transition duration-200 cursor-pointer ${
                       isActive
                         ? "bg-indigo-600 text-white shadow-sm ring-1 ring-indigo-500"
                         : isDarkMode
                           ? "bg-slate-800 hover:bg-slate-700 text-slate-350"
-                          : "bg-slate-50 hover:bg-slate-100 text-slate-650"
+                          : "bg-slate-50 hover:bg-slate-100 text-slate-600"
                     }`}
                   >
-                    {t}
+                    {getTranslatedTypeTab(tCategory)}
                   </button>
                 );
               })}
@@ -670,8 +708,8 @@ export default function MapPageLayout({
                   id="no-fac-found"
                 >
                   <div className="text-4xl text-slate-350 mb-2.5">🍽️</div>
-                  <p className={`text-sm font-bold ${isDarkMode ? "text-slate-300" : "text-slate-600"}`}>Kriterlerinize uygun tesis bulunamadı.</p>
-                  <p className={`text-xs mt-1 pb-4 leading-relaxed ${isDarkMode ? "text-slate-550" : "text-slate-400"}`}>Lütfen arama terimlerinizi veya filtrelerinizi sıfırlayın.</p>
+                  <p className={`text-sm font-bold ${isDarkMode ? "text-slate-300" : "text-slate-600"}`}>{t.noFacilitiesFound}</p>
+                  <p className={`text-xs mt-1 pb-4 leading-relaxed ${isDarkMode ? "text-slate-500" : "text-slate-400"}`}>{t.noFacilitiesSub}</p>
                 </motion.div>
               ) : (
                 filteredFacilities.map((fac) => {
@@ -694,6 +732,27 @@ export default function MapPageLayout({
 
                   const activeStatus = getOpenStatus(fac.openingHours, fac.closingHours);
 
+                  let isSelectedStyle = "";
+                  if (isSelected) {
+                    if (category === "Öğrenci Restoranı") {
+                      isSelectedStyle = isDarkMode
+                        ? "bg-emerald-950/15 border-emerald-500 shadow-sm ring-1 ring-emerald-900/30 scale-[1.01]"
+                        : "bg-emerald-50/40 border-emerald-500 shadow-xs ring-1 ring-emerald-500/5 scale-[1.01]";
+                    } else if (category === "Sosyal Kafe") {
+                      isSelectedStyle = isDarkMode
+                        ? "bg-amber-955/10 border-amber-500 shadow-sm ring-1 ring-amber-900/30 scale-[1.01]"
+                        : "bg-amber-50/30 border-amber-500 shadow-xs ring-1 ring-amber-500/5 scale-[1.01]";
+                    } else {
+                      isSelectedStyle = isDarkMode
+                        ? "bg-indigo-950/20 border-indigo-500 shadow-sm ring-1 ring-indigo-900/40 scale-[1.01]"
+                        : "bg-indigo-50/50 border-indigo-600 shadow-xs ring-1 ring-indigo-500/5 scale-[1.01]";
+                    }
+                  } else {
+                    isSelectedStyle = isDarkMode
+                      ? "border-transparent hover:bg-slate-800/40 active:bg-slate-800/70"
+                      : "border-transparent hover:bg-white active:bg-slate-100/40";
+                  }
+
                   return (
                     <motion.div
                       key={fac.id}
@@ -701,35 +760,28 @@ export default function MapPageLayout({
                       initial={{ opacity: 0, y: 15 }}
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, scale: 0.95 }}
-                      whileHover={{ scale: 1.005 }}
+                      whileHover={{ scale: 1.008 }}
                       transition={{ 
-						opacity: { duration: 0.2 },
+                        opacity: { duration: 0.2 },
                         y: { duration: 0.2 },
                         scale: { duration: 0.15 },
                         layout: { type: "spring", stiffness: 320, damping: 28 }
                       }}
                       onClick={() => onSelectFacility(fac)}
-                      className={`p-4 text-left cursor-pointer transition-all duration-200 relative flex flex-row gap-3.5 items-center justify-between border-l-4 border-y border-y-transparent ${
-                        isSelected
-                          ? isDarkMode
-                            ? "bg-indigo-950/20 border-indigo-500 shadow-sm ring-1 ring-indigo-900/40"
-                            : "bg-indigo-50/50 border-indigo-600 shadow-xs ring-1 ring-indigo-500/5"
-                          : isDarkMode
-                            ? "border-transparent hover:bg-slate-800/40 active:bg-slate-800/70"
-                            : "border-transparent hover:bg-white active:bg-slate-100/40"
-                      }`}
+                      className={`p-4 text-left cursor-pointer transition-all duration-200 relative flex flex-row gap-3.5 items-center justify-between border-l-4 border-y border-y-transparent ${isSelectedStyle}`}
                     >
                       <div className="flex-grow min-w-0 font-sans">
                         <div className="flex gap-1.5 items-center mb-1.5 flex-wrap justify-between pr-2">
                           <div className="flex gap-1.5 items-center flex-wrap">
                             <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full border ${cardBadgeStyle}`}>
-                              {fac.type}
+                              {getTranslatedTypeTab(fac.type)}
                             </span>
                             <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
-                              isDarkMode
-                                ? "bg-slate-800 text-slate-350 border-slate-700/60"
-                                : "bg-slate-100 text-slate-600 border-slate-200/50"
-                            }`}>
+                                isDarkMode
+                                  ? "bg-slate-800 text-slate-350 border-slate-700/60"
+                                  : "bg-slate-100 text-slate-600 border-slate-200/50"
+                              }`}
+                            >
                               {fac.district}
                             </span>
                             <span className={`w-1.5 h-1.5 rounded-full ${activeStatus.isOpen ? "bg-emerald-500 animate-pulse" : "bg-rose-500"}`} />
@@ -739,10 +791,10 @@ export default function MapPageLayout({
                             onClick={(e) => toggleFavorite(fac.id, e)}
                             className={`p-1.5 rounded-full transition-colors duration-250 flex items-center justify-center cursor-pointer shadow-2xs border ${
                               isDarkMode
-                                ? "bg-slate-805 hover:bg-slate-700 border-slate-700/80 text-slate-400 hover:text-rose-455"
+                                ? "bg-slate-805 hover:bg-slate-700 border-slate-700/80 text-slate-400 hover:text-rose-400"
                                 : "bg-white hover:bg-rose-50 border-slate-100 text-slate-400 hover:text-rose-500"
                             }`}
-                            title={favorites.includes(fac.id) ? "Favorilerden Çıkar" : "Favorilere Ekle"}
+                            title={favorites.includes(fac.id) ? (language === "tr" ? "Favorilerden Çıkar" : "Remove from Favorites") : (language === "tr" ? "Favorilere Ekle" : "Add to Favorites")}
                           >
                             <Heart 
                               className={`w-3.5 h-3.5 transition-all duration-300 ${
@@ -759,7 +811,7 @@ export default function MapPageLayout({
                           {fac.name}
                         </h3>
                         <p className={`text-xs line-clamp-2 mt-1 mb-2.5 leading-relaxed pr-2 ${
-                          isDarkMode ? "text-slate-400" : "text-slate-500"
+                          isDarkMode ? "text-slate-400" : "text-slate-505"
                         }`}>
                           {fac.address}
                         </p>
@@ -768,20 +820,43 @@ export default function MapPageLayout({
                           isDarkMode ? "text-slate-400 border-slate-800" : "text-slate-500 border-slate-100"
                         }`}>
                           <span className="flex items-center gap-1">
-                            <Clock className="w-3.5 h-3.5 text-slate-450 shrink-0" />
-                            Saatler: <span className={`font-semibold ${isDarkMode ? "text-slate-300" : "text-slate-750"}`}>{fac.openingHours || "09:00"} - {fac.closingHours || "22:00"}</span>
+                            <Clock className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                            {language === "tr" ? "Saatler" : "Hours"}: <span className={`font-semibold ${isDarkMode ? "text-slate-300" : "text-slate-700"}`}>{fac.openingHours || "09:00"} - {fac.closingHours || "22:00"}</span>
                           </span>
-                          <span className={`font-bold group flex items-center gap-0.5 transition-colors uppercase text-[10px] tracking-wider ${
-                            isDarkMode ? "text-indigo-400 hover:text-indigo-300" : "text-indigo-650 hover:text-indigo-805"
+                          <span className={`font-bold group flex items-center gap-1 transition-colors uppercase text-[10px] tracking-wider ${
+                            isSelected
+                              ? category === "Öğrenci Restoranı"
+                                ? "text-emerald-600 dark:text-emerald-400"
+                                : category === "Sosyal Kafe"
+                                ? "text-amber-600 dark:text-amber-400"
+                                : "text-indigo-650 dark:text-indigo-400"
+                              : isDarkMode 
+                              ? "text-indigo-405 hover:text-indigo-300" 
+                              : "text-indigo-650 hover:text-indigo-805"
                           }`}>
-                            İncele <ChevronRight className="w-3 h-3 group-hover:translate-x-0.5 transition-transform animate-pulse" />
+                            {isSelected ? (
+                              <span className="flex items-center gap-1.5 animate-pulse select-none">
+                                <span className={`w-1.5 h-1.5 rounded-full inline-block ${
+                                  category === "Öğrenci Restoranı" 
+                                    ? "bg-emerald-500" 
+                                    : category === "Sosyal Kafe" 
+                                    ? "bg-amber-500" 
+                                    : "bg-indigo-500"
+                                }`}></span>
+                                {language === "tr" ? "Seçildi" : "Selected"}
+                              </span>
+                            ) : (
+                              <>
+                                {language === "tr" ? "İncele" : "Review"} <ChevronRight className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" />
+                              </>
+                            )}
                           </span>
                         </div>
                       </div>
 
                       {fac.imageUrl && (
                         <div className={`w-20 h-20 rounded-xl overflow-hidden shrink-0 self-center shadow-xs border ${
-                          isDarkMode ? "bg-slate-805 border-slate-800" : "bg-slate-100 border-slate-200/40"
+                          isDarkMode ? "bg-slate-805 border-slate-800" : "bg-slate-101 border-slate-200/40"
                         }`}>
                           <img 
                             src={fac.imageUrl} 
@@ -800,18 +875,18 @@ export default function MapPageLayout({
           </div>
 
           {/* Stats Legend bottom widget */}
-          <div className="p-4 bg-slate-900 text-white text-xs shrink-0 flex flex-col justify-center">
+          <div className="p-4 bg-slate-900 text-white text-xs shrink-0 flex flex-col justify-center border-t border-slate-800">
             <div className="flex justify-between mb-1.5 font-medium">
-              <span className="text-slate-400">Filtrelenen Mekan Eşleşmesi:</span>
+              <span className="text-slate-400">{t.filteredCount}</span>
               <span className="font-bold text-indigo-400">{filteredFacilities.length} / {facilities.length}</span>
             </div>
-            <div className="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden">
+            <div className="w-full bg-slate-850 h-1.5 rounded-full overflow-hidden">
               <div 
                 className="bg-indigo-500 h-full transition-all duration-500" 
-                style={{ width: `${Math.min(100, Math.max(5, (filteredFacilities.length / Math.max(1, facilities.length)) * 100))}%` }}
+                style={{ width: `${Math.min(100, Math.max(5, (filteredFacilities.length / Math.max(1, facilities.length)) * 105))}%` }}
               ></div>
             </div>
-            <span className="text-[10px] text-slate-500 mt-1.5 text-right font-mono">İBB Veri Portalı Canlı • V.2.0.4</span>
+            <span className="text-[10px] text-slate-500 mt-1.5 text-right font-mono">{t.ibblive}</span>
           </div>
         </div>
 
@@ -853,7 +928,7 @@ export default function MapPageLayout({
 
                 <div className="flex-grow overflow-y-auto" id="bottom-sheet-content">
                   {selectedFacility.imageUrl ? (
-                    <div className="w-full h-44 sm:h-52 bg-slate-101 relative shrink-0">
+                    <div className="w-full h-44 sm:h-52 bg-slate-100 relative shrink-0">
                       <img
                         src={selectedFacility.imageUrl}
                         alt={selectedFacility.name}
@@ -865,7 +940,7 @@ export default function MapPageLayout({
                       {/* Floating Category/District badge labels on image cover */}
                       <div className="absolute top-3 left-3 flex gap-1.5 flex-wrap">
                         <span className={`text-[10px] font-bold px-3 py-1 rounded-full border shadow-sm ${overlayBadgeStyle}`}>
-                          {selectedFacility.type}
+                          {getTranslatedTypeTab(selectedFacility.type)}
                         </span>
                         <span className="text-[10px] font-bold px-2.5 py-1 bg-slate-900/80 backdrop-blur-md text-white rounded-full border border-white/20 shadow-sm">
                           {selectedFacility.district}
@@ -877,7 +952,7 @@ export default function MapPageLayout({
                       <div className="text-white font-display text-4xl select-none">🏞️</div>
                       <div className="absolute top-3 left-3 flex gap-1.5 flex-wrap">
                         <span className={`text-[10px] font-bold px-3 py-1 rounded-full border shadow-sm ${overlayBadgeStyle}`}>
-                          {selectedFacility.type}
+                          {getTranslatedTypeTab(selectedFacility.type)}
                         </span>
                         <span className="text-[10px] font-bold px-2.5 py-1 bg-slate-900/80 backdrop-blur-md text-white rounded-full border border-white/20 shadow-sm">
                           {selectedFacility.district}
@@ -890,7 +965,7 @@ export default function MapPageLayout({
                     {/* Header: Title and primary close / bookmark buttons */}
                     <div className="flex justify-between items-start gap-3">
                       <div>
-                        <h2 className={`font-bold text-base sm:text-lg leading-snug tracking-tight ${
+                        <h2 className={`font-bold text-base sm:text-lg leading-snug tracking-tight text-left ${
                           isDarkMode ? "text-slate-100" : "text-slate-900"
                         }`}>
                           {selectedFacility.name}
@@ -914,10 +989,10 @@ export default function MapPageLayout({
                           onClick={(e) => toggleFavorite(selectedFacility.id, e)}
                           className={`p-2 border rounded-lg transition-colors cursor-pointer shadow-xs ${
                             isDarkMode
-                              ? "bg-slate-800 hover:bg-slate-700 border-slate-700 text-slate-350 hover:text-rose-400"
-                              : "bg-slate-50 hover:bg-rose-55 hover:text-rose-600 border-slate-200/60 text-slate-400 hover:border-rose-200"
+                              ? "bg-slate-800 hover:bg-slate-705 border-slate-700 text-slate-350 hover:text-rose-400"
+                              : "bg-slate-50 hover:bg-rose-50 hover:text-rose-600 border-slate-200/60 text-slate-400 hover:border-rose-250"
                           }`}
-                          title={favorites.includes(selectedFacility.id) ? "Favorilerden Çıkar" : "Favorilere Ekle"}
+                          title={favorites.includes(selectedFacility.id) ? (language === "tr" ? "Favorilerden Çıkar" : "Remove from Favorites") : (language === "tr" ? "Favorilere Ekle" : "Add to Favorites")}
                         >
                           <Heart
                             className={`w-4 h-4 transition-all duration-300 ${
@@ -927,6 +1002,7 @@ export default function MapPageLayout({
                             }`}
                           />
                         </button>
+
                         <button
                           onClick={() => onSelectFacility(null)}
                           className={`p-1.5 border rounded-lg transition-colors cursor-pointer shadow-xs ${
@@ -934,7 +1010,7 @@ export default function MapPageLayout({
                               ? "bg-slate-800 hover:bg-slate-700 border-slate-700 text-slate-400 hover:text-slate-100"
                               : "bg-slate-50 hover:bg-slate-100 hover:text-slate-800 border-slate-200/60 text-slate-400"
                           }`}
-                          title="Kapat"
+                          title={language === "tr" ? "Kapat" : "Close"}
                         >
                           ✕
                         </button>
@@ -949,11 +1025,11 @@ export default function MapPageLayout({
                           ? "bg-slate-800/40 hover:bg-slate-850 border-slate-800/80"
                           : "bg-slate-50 hover:bg-slate-100/60 border border-slate-100/80"
                       }`}>
-                        <MapPin className="w-4 h-4 text-indigo-500 shrink-0 mt-0.5" />
+                        <MapPin className="w-4 h-4 text-indigo-505 shrink-0 mt-0.5" />
                         <div className="flex-grow pr-10 text-left">
                           <span className={`text-[10px] uppercase font-extrabold tracking-wider block mb-0.5 ${
                             isDarkMode ? "text-slate-500" : "text-slate-400"
-                          }`}>Mekan Adresi</span>
+                          }`}>{t.addressTitle}</span>
                           <p className={`text-xs leading-relaxed font-semibold pr-1 ${
                             isDarkMode ? "text-slate-200" : "text-slate-700"
                           }`}>{selectedFacility.address}</p>
@@ -965,7 +1041,7 @@ export default function MapPageLayout({
                               ? "bg-slate-800 hover:bg-slate-700 border-slate-700 text-slate-450 hover:text-indigo-400"
                               : "bg-white hover:bg-indigo-50 border-slate-200/60 text-slate-450 hover:text-indigo-600"
                           }`}
-                          title="Adresi Kopyala"
+                          title={language === "tr" ? "Adresi Kopyala" : "Copy Address"}
                         >
                           {addressCopied ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5" />}
                         </button>
@@ -980,8 +1056,8 @@ export default function MapPageLayout({
                           <div>
                             <span className={`text-[10px] uppercase font-bold tracking-wider block ${
                               isDarkMode ? "text-slate-500" : "text-slate-400"
-                            }`}>Hizmet Saatleri</span>
-                            <p className={`text-xs font-bold ${isDarkMode ? "text-slate-200" : "text-slate-805"}`}>{selectedFacility.openingHours || "09:00"} - {selectedFacility.closingHours || "22:00"}</p>
+                            }`}>{t.hoursTitle}</span>
+                            <p className={`text-xs font-bold ${isDarkMode ? "text-slate-200" : "text-slate-800"}`}>{selectedFacility.openingHours || "09:00"} - {selectedFacility.closingHours || "22:00"}</p>
                           </div>
                         </div>
 
@@ -992,31 +1068,31 @@ export default function MapPageLayout({
                           <div>
                             <span className={`text-[10px] uppercase font-bold tracking-wider block ${
                               isDarkMode ? "text-slate-500" : "text-slate-400"
-                            }`}>Tesis Türü</span>
-                            <p className={`text-xs font-bold truncate max-w-[120px] ${isDarkMode ? "text-slate-200" : "text-slate-805"}`}>{selectedFacility.type}</p>
+                            }`}>{t.typeTitle}</span>
+                            <p className={`text-xs font-bold truncate max-w-[120px] ${isDarkMode ? "text-slate-200" : "text-slate-800"}`}>{getTranslatedTypeTab(selectedFacility.type)}</p>
                           </div>
                         </div>
 
                         <div className={`rounded-xl p-3 flex items-center gap-2.5 border ${
-                          isDarkMode ? "bg-slate-800/40 border-slate-800/80" : "bg-slate-50 border-slate-100"
+                          isDarkMode ? "bg-slate-800/40 border-slate-800/80" : "bg-slate-50 border-slate-101"
                         }`}>
                           <Compass className="w-4 h-4 text-indigo-500 shrink-0" />
                           <div>
                             <span className={`text-[10px] uppercase font-bold tracking-wider block ${
                               isDarkMode ? "text-slate-500" : "text-slate-400"
-                            }`}>Şehir / İlçe</span>
-                            <p className={`text-xs font-bold ${isDarkMode ? "text-slate-200" : "text-slate-805"}`}>{selectedFacility.district} / {selectedFacility.city || "Antalya"}</p>
+                            }`}>{t.cityDistrictTitle}</span>
+                            <p className={`text-xs font-bold ${isDarkMode ? "text-slate-200" : "text-slate-800"}`}>{selectedFacility.district} / {selectedFacility.city || "Istanbul"}</p>
                           </div>
                         </div>
 
                         <div className={`rounded-xl p-3 flex items-center gap-2.5 border ${
-                          isDarkMode ? "bg-slate-800/40 border-slate-800/80" : "bg-slate-50 border-slate-100"
+                          isDarkMode ? "bg-slate-800/40 border-slate-800/80" : "bg-slate-50 border-slate-101"
                         }`}>
                           <div className="w-full">
                             <span className={`text-[10px] uppercase font-bold tracking-wider block ${
                               isDarkMode ? "text-slate-500" : "text-slate-400"
-                            }`}>Koordinat</span>
-                            <p className={`text-[10.5px] font-mono font-bold mt-0.5 ${isDarkMode ? "text-slate-350" : "text-slate-705"}`}>{selectedFacility.lat.toFixed(5)}, {selectedFacility.lng.toFixed(5)}</p>
+                            }`}>{t.coordinateTitle}</span>
+                            <p className={`text-[10.5px] font-mono font-bold mt-0.5 ${isDarkMode ? "text-slate-350" : "text-slate-700"}`}>{selectedFacility.lat.toFixed(5)}, {selectedFacility.lng.toFixed(5)}</p>
                           </div>
                         </div>
                       </div>
@@ -1033,12 +1109,12 @@ export default function MapPageLayout({
                         {facilityShared ? (
                           <>
                             <Check className="w-4 h-4 text-emerald-500 animate-bounce" />
-                            <span className="text-emerald-400">Mekan Detayları Panoya Kopyalandı!</span>
+                            <span className="text-emerald-400">{t.shareCopiedText}</span>
                           </>
                         ) : (
                           <>
                             <Share2 className={`w-4 h-4 ${isDarkMode ? "text-indigo-400" : "text-indigo-600"}`} />
-                            <span>Mekan Bilgilerini Arkadaşınla Paylaş</span>
+                            <span>{t.shareText}</span>
                           </>
                         )}
                       </button>
@@ -1048,7 +1124,7 @@ export default function MapPageLayout({
                       }`}>
                         <span className={`text-[10px] uppercase font-extrabold tracking-wider block ${
                           isDarkMode ? "text-slate-500" : "text-slate-450"
-                        }`}>Navigasyon ve Rota Çizimi</span>
+                        }`}>{t.navigationHeading}</span>
 
                         {/* Routing status / stats display */}
                         {isCalculatingRoute && (
@@ -1058,7 +1134,7 @@ export default function MapPageLayout({
                               : "text-indigo-700 bg-indigo-50 border-indigo-150"
                           }`}>
                             <RefreshCw className="w-4 h-4 animate-spin text-indigo-500" />
-                            Gezinti Rotası Paketi Paketleniyor...
+                            {t.routeLoading}
                           </div>
                         )}
 
@@ -1068,30 +1144,30 @@ export default function MapPageLayout({
                               ? "bg-red-950/30 text-red-300 border-red-900/40"
                               : "text-red-700 bg-red-50 border-red-150"
                           }`}>
-                            ⚠️ Geri bildirim: {routeError}
+                            ⚠️ {language === "tr" ? "Geri bildirim:" : "Feedback:"} {routeError}
                           </div>
                         )}
 
                         {routePolyline && routeStats && (
                           <div className={`text-xs rounded-xl p-3 flex flex-col gap-1 shadow-xs border ${
                             isDarkMode
-                              ? "bg-emerald-950/30 border-emerald-900/40 text-emerald-300"
+                              ? "bg-emerald-955/35 border-emerald-900/40 text-emerald-300"
                               : "bg-emerald-50 border-emerald-150 text-emerald-800"
                           }`}>
                             <div className="flex justify-between items-center font-bold">
-                              <span>🗺️ Haritada Yol Tarifi Çizildi</span>
-                              <span className="text-[9px] bg-emerald-600 text-white px-2 py-0.5 rounded-full uppercase tracking-wider font-extrabold">Aktif</span>
+                              <span>🗺️ {t.routeSuccessTitle}</span>
+                              <span className="text-[9px] bg-emerald-600 text-white px-2 py-0.5 rounded-full uppercase tracking-wider font-extrabold">{t.routeActiveTag}</span>
                             </div>
                             <div className={`flex gap-4 mt-1 font-semibold p-2 rounded-lg border ${
                               isDarkMode
-                                ? "bg-slate-850/50 border-emerald-950/40 text-slate-300"
-                                : "bg-white/50 border-emerald-100/50 text-slate-7005"
+                                ? "bg-slate-850/50 border-emerald-950/40 text-slate-350"
+                                : "bg-white/50 border-emerald-100/50 text-slate-700"
                             }`}>
                               <span className="flex items-center gap-1 text-xs">
-                                🚗 Mesafe: <span className={`${isDarkMode ? "text-white" : "text-slate-900"} font-bold`}>{formatDistance(routeStats.distance)}</span>
+                                🚗 {t.routeDistance}: <span className={`${isDarkMode ? "text-white" : "text-slate-900"} font-bold`}>{formatDistance(routeStats.distance)}</span>
                               </span>
                               <span className="flex items-center gap-1 text-xs">
-                                ⏱️ Süre: <span className={`${isDarkMode ? "text-white" : "text-slate-900"} font-bold`}>{formatDuration(routeStats.duration)}</span>
+                                ⏱️ {t.routeDuration}: <span className={`${isDarkMode ? "text-white" : "text-slate-900"} font-bold`}>{formatDuration(routeStats.duration)}</span>
                               </span>
                             </div>
                           </div>
@@ -1110,7 +1186,7 @@ export default function MapPageLayout({
                                   : "bg-slate-150 hover:bg-slate-200 hover:text-slate-950 text-slate-700"
                               }`}
                             >
-                              Rotayı Temizle
+                              {t.clearRouteBtn}
                             </button>
                           ) : (
                             <button
@@ -1119,7 +1195,7 @@ export default function MapPageLayout({
                               className="flex-grow text-center text-xs py-2.5 bg-indigo-600 hover:bg-indigo-705 disabled:opacity-50 text-white rounded-xl font-bold transition duration-200 flex items-center justify-center gap-1.5 cursor-pointer shadow-sm shadow-indigo-600/10"
                             >
                               <Navigation className="w-3.5 h-3.5 fill-current rotate-45" />
-                              {isGettingLocation ? "Konum Alınıyor..." : "Haritada Rota Çiz"}
+                              {isGettingLocation ? t.drawRouteGettingGPS : t.drawRouteBtn}
                             </button>
                           )}
 
@@ -1132,9 +1208,9 @@ export default function MapPageLayout({
                             className={`px-4.5 rounded-xl transition duration-200 flex items-center justify-center border ${
                               isDarkMode
                                 ? "bg-slate-800 hover:bg-slate-700 border-slate-705 text-slate-300 hover:text-white"
-                                : "bg-slate-100 hover:bg-slate-200 text-slate-600 border-slate-200/50 hover:text-slate-900"
+                                : "bg-slate-101 hover:bg-slate-200 text-slate-600 border-slate-220/50 hover:text-slate-900"
                             }`}
-                            title="Google Haritalar'da Dışarıya Aç"
+                            title={t.openGoogleMapsTitle}
                           >
                             <Compass className="w-4 h-4 text-slate-400 group-hover:text-slate-200" />
                           </a>
@@ -1155,15 +1231,15 @@ export default function MapPageLayout({
           }`}>
             <span className={`text-[9px] uppercase font-bold tracking-wider ${
               isDarkMode ? "text-slate-500" : "text-slate-400"
-            }`}>Harita Göstergesi</span>
+            }`}>{t.mapIndicatorTitle}</span>
             <div className="flex items-center gap-2 text-xs font-semibold">
-              <span className="w-2.5 h-2.5 bg-blue-600 rounded-full inline-block"></span> <span>🍽️ Sosyal Tesisler</span>
+              <span className="w-2.5 h-2.5 bg-blue-600 rounded-full inline-block"></span> <span>🍽️ {t.indicatorSocialFacility}</span>
             </div>
             <div className="flex items-center gap-2 text-xs font-semibold">
-              <span className="w-2.5 h-2.5 bg-emerald-600 rounded-full inline-block"></span> <span>🥣 Öğrenci Restoranları</span>
+              <span className="w-2.5 h-2.5 bg-emerald-600 rounded-full inline-block"></span> <span>🥣 {t.indicatorStudentRestaurant}</span>
             </div>
             <div className="flex items-center gap-2 text-xs font-semibold">
-              <span className="w-2.5 h-2.5 bg-amber-500 rounded-full inline-block"></span> <span>☕ Sosyal Kafeler</span>
+              <span className="w-2.5 h-2.5 bg-amber-500 rounded-full inline-block"></span> <span>☕ {t.indicatorSocialCafe}</span>
             </div>
           </div>
 
@@ -1174,6 +1250,7 @@ export default function MapPageLayout({
             userLocation={userLocation}
             routePolyline={routePolyline}
             isDarkMode={isDarkMode}
+            language={language}
           />
         </div>
       </div>
