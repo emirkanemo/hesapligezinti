@@ -367,18 +367,18 @@ export default function MapPageLayout({
   return (
     <div className={`flex flex-col h-screen font-sans transition-colors duration-300 ${isDarkMode ? "bg-slate-950 text-slate-100" : "bg-slate-50 text-slate-800"}`} id="map-page-container">
       {/* Navbar Map Header */}
-      <header className={`h-16 px-6 shrink-0 flex items-center justify-between shadow-xs z-20 border-b transition-colors duration-300 ${isDarkMode ? "bg-slate-900 border-slate-800" : "bg-white border-slate-200"}`}>
-        <div className="flex items-center gap-3">
+      <header className={`h-14 md:h-16 px-3 md:px-6 shrink-0 flex items-center justify-between shadow-xs z-20 border-b transition-colors duration-305 ${isDarkMode ? "bg-slate-900 border-slate-800" : "bg-white border-slate-200"}`}>
+        <div className="flex items-center gap-2 md:gap-3">
           <button
             onClick={onBackToLanding}
-            className={`p-2 border active:scale-95 transition-all rounded-xl flex items-center justify-center cursor-pointer mr-1 ${
+            className={`p-1.5 md:p-2 border active:scale-95 transition-all rounded-xl flex items-center justify-center cursor-pointer mr-0.5 md:mr-1 ${
               isDarkMode 
-                ? "border-slate-700 bg-slate-800 hover:bg-slate-700 text-slate-200" 
+                ? "border-slate-705 bg-slate-800 hover:bg-slate-700 text-slate-200" 
                 : "border-slate-200 bg-white hover:bg-slate-50 text-slate-600"
             }`}
             title={t.backButton}
           >
-            <ArrowLeft className="w-5 h-5" />
+            <ArrowLeft className="w-4.5 h-4.5 md:w-5 md:h-5" />
           </button>
           
           <div 
@@ -405,39 +405,39 @@ export default function MapPageLayout({
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5 md:gap-2">
           {/* Universal Language Switcher Toggle */}
           <button
             onClick={() => onLanguageChange(language === "tr" ? "en" : "tr")}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold border transition duration-300 cursor-pointer active:scale-95 ${
+            className={`flex items-center gap-1 md:gap-1.5 px-2 py-1 md:px-3 md:py-1.5 rounded-xl text-xs font-bold border transition duration-305 cursor-pointer active:scale-95 ${
               isDarkMode
-                ? "bg-slate-850 hover:bg-slate-800 text-slate-300 border-slate-700"
+                ? "bg-slate-850 hover:bg-slate-800 text-slate-350 border-slate-705"
                 : "bg-indigo-50 hover:bg-indigo-100 text-indigo-805 border-indigo-150"
             }`}
             title={language === "tr" ? "English" : "Türkçe"}
           >
-            <Globe className="w-3.5 h-3.5 text-indigo-600" />
-            <span>{language === "tr" ? "EN" : "TR"}</span>
+            <Globe className="w-3 h-3 md:w-3.5 md:h-3.5 text-indigo-650" />
+            <span className="text-[11px] md:text-xs">{language === "tr" ? "EN" : "TR"}</span>
           </button>
 
           {/* Theme switcher toggle */}
           <button
             onClick={() => setIsDarkMode(!isDarkMode)}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold border transition-all duration-300 cursor-pointer select-none active:scale-95 ${
+            className={`flex items-center gap-1 md:gap-1.5 px-2 py-1 md:px-3 md:py-1.5 rounded-xl text-xs font-bold border transition-all duration-305 cursor-pointer select-none active:scale-95 ${
               isDarkMode
-                ? "bg-slate-800 text-amber-400 border-slate-700 hover:bg-slate-750 hover:text-amber-300 shadow-sm"
+                ? "bg-slate-800 text-amber-400 border-slate-705 hover:bg-slate-750 hover:text-amber-305 shadow-sm"
                 : "bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100 hover:text-amber-800"
             }`}
             title={isDarkMode ? (language === "tr" ? "Sabah Moduna Geç" : "Switch to Day Mode") : (language === "tr" ? "Gece Moduna Geç" : "Switch to Night Mode")}
           >
             {isDarkMode ? (
               <>
-                <Sun className="w-3.5 h-3.5 text-amber-400" />
+                <Sun className="w-3 h-3 md:w-3.5 md:h-3.5 text-amber-400" />
                 <span className="hidden sm:inline">{t.morningMode}</span>
               </>
             ) : (
               <>
-                <Moon className="w-3.5 h-3.5 text-amber-600 fill-amber-500/10" />
+                <Moon className="w-3 h-3 md:w-3.5 md:h-3.5 text-amber-600 fill-amber-500/10" />
                 <span className="hidden sm:inline">{t.nightMode}</span>
               </>
             )}
@@ -446,18 +446,18 @@ export default function MapPageLayout({
           {/* Geolocation Button */}
           <button
             onClick={handleGetUserLocation}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold border transition ${
+            className={`flex items-center gap-1 md:gap-1.5 px-2 py-1 md:px-3 md:py-1.5 rounded-xl text-xs font-bold border transition ${
               userLocation
                 ? isDarkMode
                   ? "bg-indigo-950/60 text-indigo-350 border-indigo-800/80"
-                  : "bg-blue-50 text-blue-700 border-blue-200"
+                  : "bg-blue-50 text-blue-705 border-blue-200"
                 : isDarkMode
-                  ? "bg-slate-800 hover:bg-slate-705 text-slate-200 border-slate-700"
+                  ? "bg-slate-800 hover:bg-slate-705 text-slate-200 border-slate-705"
                   : "bg-white hover:bg-slate-50 text-slate-600 border-slate-200"
             }`}
             disabled={isGettingLocation}
           >
-            <Navigation className={`w-3.5 h-3.5 ${isGettingLocation ? "animate-spin" : ""}`} />
+            <Navigation className={`w-3 h-3 md:w-3.5 md:h-3.5 ${isGettingLocation ? "animate-spin" : ""}`} />
             <span className="hidden sm:inline">
               {isGettingLocation ? t.drawRouteGettingGPS : (userLocation ? t.myLocationActive : t.findMyLocation)}
             </span>
@@ -467,14 +467,14 @@ export default function MapPageLayout({
           <button
             onClick={onRefreshData}
             disabled={isLoading}
-            className={`flex items-center justify-center p-2 rounded-xl border transition ${
+            className={`flex items-center justify-center p-1.5 md:p-2 rounded-xl border transition ${
               isDarkMode
-                ? "border-slate-700 bg-slate-800 text-slate-250 hover:bg-slate-700 hover:text-indigo-400"
-                : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50 hover:text-indigo-600"
+                ? "border-slate-705 bg-slate-800 text-slate-250 hover:bg-slate-700 hover:text-indigo-400"
+                : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50 hover:text-indigo-650"
             }`}
             title={language === "tr" ? "Yenile (Google Sheets'ten Çek)" : "Sync (Fetch from Google Sheets)"}
           >
-            <RefreshCw className={`w-4 h-4 ${isLoading ? "animate-spin" : ""}`} />
+            <RefreshCw className={`w-3.5 h-3.5 md:w-4 md:h-4 ${isLoading ? "animate-spin" : ""}`} />
           </button>
         </div>
       </header>
@@ -486,13 +486,13 @@ export default function MapPageLayout({
           isDarkMode ? "bg-slate-900 border-slate-800" : "bg-white border-slate-200"
         }`}>
           {/* Quick Filters and Search - Interactive Refinements */}
-          <div className={`p-4 border-b shrink-0 space-y-4 transition-colors duration-300 ${
+          <div className={`p-3 md:p-4 border-b shrink-0 space-y-2.5 md:space-y-4 transition-colors duration-300 ${
             isDarkMode ? "border-slate-800 bg-slate-900" : "border-slate-200 bg-white"
           }`}>
             
             {/* Search Input with Focus Indicators */}
             <div className="relative group">
-              <Search className={`w-4 h-4 absolute left-3.5 top-3.5 transition-colors duration-300 ${
+              <Search className={`w-3.5 h-3.5 md:w-4 md:h-4 absolute left-3 md:left-3.5 top-3 md:top-3.5 transition-colors duration-300 ${
                 isSearchFocused 
                   ? "text-indigo-505 shadow-sm" 
                   : isDarkMode ? "text-slate-500" : "text-slate-400"
@@ -504,12 +504,12 @@ export default function MapPageLayout({
                 onFocus={() => setIsSearchFocused(true)}
                 onBlur={() => setTimeout(() => setIsSearchFocused(false), 250)}
                 onChange={(e) => setFilters((prev) => ({ ...prev, search: e.target.value }))}
-                className={`w-full pl-10 pr-10 py-2.5 rounded-2xl border text-sm transition-all duration-300 focus:outline-none ${
+                className={`w-full pl-9 md:pl-10 pr-9 md:pr-10 py-2 md:py-2.5 rounded-xl border text-xs md:text-sm transition-all duration-300 focus:outline-none ${
                   isDarkMode
                     ? `bg-slate-800/60 border-slate-700/60 focus:bg-slate-800 focus:border-indigo-400 text-slate-100 placeholder:text-slate-505 ${
                         isSearchFocused ? "ring-4 ring-indigo-500/20" : ""
                       }`
-                    : `bg-slate-50/50 hover:bg-slate-50 focus:bg-white border-slate-250/80 text-slate-800 ${
+                    : `bg-slate-50/50 hover:bg-slate-50 focus:bg-white border-slate-250/80 text-slate-850 ${
                         isSearchFocused ? "border-indigo-500 ring-4 ring-indigo-500/10 shadow-sm" : "shadow-xs"
                       }`
                 }`}
@@ -521,7 +521,7 @@ export default function MapPageLayout({
                     animate={{ opacity: 1, scale: 1 }}
                     exit={{ opacity: 0, scale: 0.8 }}
                     onClick={() => setFilters((prev) => ({ ...prev, search: "" }))}
-                    className={`absolute right-3 top-2.5 p-1.5 rounded-full transition cursor-pointer ${
+                    className={`absolute right-3 top-2 lg:top-2.5 p-1.5 rounded-full transition cursor-pointer ${
                       isDarkMode ? "text-slate-400 hover:text-slate-200 hover:bg-slate-700" : "text-slate-400 hover:text-slate-600 hover:bg-slate-100"
                     }`}
                   >
@@ -533,18 +533,18 @@ export default function MapPageLayout({
 
             {/* Popular Shortcut Search Tags - dynamically adjusted */}
             {popularCities.length > 0 && (
-              <div className={`flex flex-col gap-1.5 border rounded-xl p-2.5 md:p-3 animate-fade-in transition-colors duration-300 ${
-                isDarkMode ? "bg-slate-800/40 border-slate-800" : "bg-slate-50/55 border-slate-150/40"
+              <div className={`flex flex-col gap-1.5 border rounded-xl p-2 md:p-3 animate-fade-in transition-colors duration-300 ${
+                isDarkMode ? "bg-slate-800/40 border-slate-805" : "bg-slate-50/55 border-slate-150/40"
               }`}>
-                <span className={`text-[9.5px] font-extrabold tracking-wider uppercase ${isDarkMode ? "text-slate-500" : "text-slate-400"}`}>{t.popularDistrictsLabel}</span>
-                <div className="flex gap-1.5 flex-wrap">
+                <span className={`text-[9px] md:text-[9.5px] font-extrabold tracking-wider uppercase ${isDarkMode ? "text-slate-500" : "text-slate-400"}`}>{t.popularDistrictsLabel}</span>
+                <div className="flex gap-1 md:gap-1.5 flex-wrap">
                   {popularCities.map((cty) => {
                     const isSelected = filters.city === cty;
                     return (
                       <button
                         key={cty}
                         onClick={() => setFilters((prev) => ({ ...prev, city: isSelected ? "Tümü" : cty }))}
-                        className={`text-[10.5px] font-bold px-2.5 py-1 rounded-lg border transition-all duration-200 cursor-pointer ${
+                        className={`text-[10px] md:text-[10.5px] font-bold px-2 md:px-2.5 py-1 rounded-lg border transition-all duration-200 cursor-pointer ${
                           isSelected
                             ? "bg-indigo-600 border-indigo-600 text-white shadow-sm"
                             : isDarkMode
@@ -559,10 +559,10 @@ export default function MapPageLayout({
                   {filters.city !== "Tümü" && (
                     <button
                       onClick={() => setFilters((prev) => ({ ...prev, city: "Tümü" }))}
-                      className={`text-[10.5px] font-extrabold px-2 py-1 border rounded-lg transition-all cursor-pointer ${
+                      className={`text-[10px] md:text-[10.5px] font-extrabold px-2 py-1 border rounded-lg transition-all cursor-pointer ${
                         isDarkMode
-                          ? "bg-rose-950/40 text-rose-300 border-rose-900/60 hover:bg-rose-900/30"
-                          : "bg-rose-50 text-rose-600 border-rose-150 hover:bg-rose-100"
+                          ? "bg-rose-955/40 text-rose-300 border-rose-900/60 hover:bg-rose-900/30"
+                          : "bg-rose-50 text-rose-600 border-rose-150 hover:bg-rose-105"
                       }`}
                     >
                       {t.clearFilters}
@@ -573,7 +573,7 @@ export default function MapPageLayout({
             )}
 
             {/* Quick Filters Row with Interactive states */}
-            <div className="flex flex-col gap-2.5 pt-0.5">
+            <div className="flex flex-col gap-1.5 md:gap-2.5 pt-0.5">
               <div className="flex items-center justify-between">
                 <span className={`text-[10px] font-extrabold uppercase tracking-wider ${isDarkMode ? "text-slate-500" : "text-slate-400"}`}>{t.filterDistricts}</span>
                 
@@ -591,10 +591,10 @@ export default function MapPageLayout({
                 ) : null}
               </div>
 
-              <div className="flex gap-1.5 flex-wrap items-center">
+              <div className="flex gap-1 md:gap-1.5 flex-wrap items-center">
                 <button
                   onClick={() => setShowFiltersMobile(!showFiltersMobile)}
-                  className={`flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-xs font-bold border transition duration-200 cursor-pointer ${
+                  className={`flex items-center gap-1 px-2 md:px-2.5 py-1 md:py-1.5 rounded-xl text-[11px] md:text-xs font-bold border transition duration-200 cursor-pointer ${
                     showFiltersMobile || filters.city !== "Tümü"
                       ? isDarkMode
                         ? "bg-indigo-950/50 text-indigo-300 border-indigo-850 shadow-sm"
@@ -604,13 +604,13 @@ export default function MapPageLayout({
                         : "bg-slate-50 hover:bg-slate-100 text-slate-600 border-slate-200/60"
                   }`}
                 >
-                  <SlidersHorizontal className="w-3.5 h-3.5" />
+                  <SlidersHorizontal className="w-3 h-3 md:w-3.5 md:h-3.5" />
                   <span>{filters.city !== "Tümü" ? `${language === "tr" ? "İl" : "City"}: ${filters.city}` : (language === "tr" ? "İller" : "Cities")}</span>
                 </button>
 
                 <button
                   onClick={() => setFilters(prev => ({ ...prev, onlyOpenNow: !prev.onlyOpenNow }))}
-                  className={`flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-xs font-bold border transition duration-200 cursor-pointer select-none ${
+                  className={`flex items-center gap-1 px-2 md:px-2.5 py-1 md:py-1.5 rounded-xl text-[11px] md:text-xs font-bold border transition duration-200 cursor-pointer select-none ${
                     filters.onlyOpenNow
                       ? isDarkMode
                         ? "bg-emerald-950/40 text-emerald-350 border-emerald-850 shadow-sm"
@@ -620,13 +620,13 @@ export default function MapPageLayout({
                         : "bg-slate-50 hover:bg-slate-100 text-slate-600 border-slate-200/60"
                   }`}
                 >
-                  <Clock className={`w-3.5 h-3.5 transition-all duration-300 ${filters.onlyOpenNow ? "text-emerald-500 scale-105 animate-pulse" : "text-slate-400"}`} />
+                  <Clock className={`w-3 h-3 md:w-3.5 md:h-3.5 transition-all duration-300 ${filters.onlyOpenNow ? "text-emerald-500 scale-105 animate-pulse" : "text-slate-400"}`} />
                   <span>{t.filterOpenNow}</span>
                 </button>
 
                 <button
                   onClick={() => setFilters(prev => ({ ...prev, onlyFavorites: !prev.onlyFavorites }))}
-                  className={`flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-xs font-bold border transition duration-200 cursor-pointer select-none ${
+                  className={`flex items-center gap-1 px-2 md:px-2.5 py-1 md:py-1.5 rounded-xl text-[11px] md:text-xs font-bold border transition duration-200 cursor-pointer select-none ${
                     filters.onlyFavorites
                       ? isDarkMode
                         ? "bg-rose-950/40 text-rose-350 border-rose-850 shadow-sm"
@@ -636,7 +636,7 @@ export default function MapPageLayout({
                         : "bg-slate-50 hover:bg-slate-100 text-slate-600 border-slate-200/60"
                   }`}
                 >
-                  <Heart className={`w-3.5 h-3.5 transition-all duration-300 ${filters.onlyFavorites ? "fill-rose-500 text-rose-500 scale-105" : "text-slate-400"}`} />
+                  <Heart className={`w-3 h-3 md:w-3.5 md:h-3.5 transition-all duration-300 ${filters.onlyFavorites ? "fill-rose-500 text-rose-500 scale-105" : "text-slate-400"}`} />
                   <span>{t.filterFavorites} ({favorites.length})</span>
                 </button>
               </div>
@@ -657,7 +657,7 @@ export default function MapPageLayout({
                   onChange={(e) => setFilters((prev) => ({ ...prev, city: e.target.value }))}
                   className={`w-full text-xs border rounded-xl p-2.5 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 font-semibold transition transition-colors ${
                     isDarkMode
-                      ? "bg-slate-800 border-slate-700 text-slate-200"
+                      ? "bg-slate-800 border-slate-700 text-slate-205"
                       : "bg-slate-50 border-slate-200 text-slate-700"
                   }`}
                 >
@@ -671,14 +671,14 @@ export default function MapPageLayout({
             )}
 
             {/* Quick Badges Category row */}
-            <div className="flex gap-1.5 overflow-x-auto pt-1 no-scrollbar shrink-0">
+            <div className="flex gap-1 md:gap-1.5 overflow-x-auto pt-1 no-scrollbar shrink-0">
               {facilityTypes.map((tCategory) => {
                 const isActive = filters.type === tCategory;
                 return (
                   <button
                     key={tCategory}
                     onClick={() => setFilters((prev) => ({ ...prev, type: tCategory }))}
-                    className={`whitespace-nowrap px-3.5 py-2 rounded-xl text-xs font-bold transition duration-200 cursor-pointer ${
+                    className={`whitespace-nowrap px-2.5 md:px-3.5 py-1.5 md:py-2 rounded-xl text-[11px] md:text-xs font-bold transition duration-200 cursor-pointer ${
                       isActive
                         ? "bg-indigo-600 text-white shadow-sm ring-1 ring-indigo-500"
                         : isDarkMode
@@ -769,10 +769,10 @@ export default function MapPageLayout({
                         layout: { type: "spring", stiffness: 320, damping: 28 }
                       }}
                       onClick={() => onSelectFacility(fac)}
-                      className={`p-4 text-left cursor-pointer transition-all duration-200 relative flex flex-row gap-3.5 items-center justify-between border-l-4 border-y border-y-transparent ${isSelectedStyle}`}
+                      className={`p-3 md:p-4 text-left cursor-pointer transition-all duration-200 relative flex flex-row gap-2.5 md:gap-3.5 items-center justify-between border-l-4 border-y border-y-transparent ${isSelectedStyle}`}
                     >
                       <div className="flex-grow min-w-0 font-sans">
-                        <div className="flex gap-1.5 items-center mb-1.5 flex-wrap justify-between pr-2">
+                        <div className="flex gap-1 md:gap-1.5 items-center mb-1 md:mb-1.5 flex-wrap justify-between pr-2">
                           <div className="flex gap-1.5 items-center flex-wrap">
                             <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full border ${cardBadgeStyle}`}>
                               {getTranslatedTypeTab(fac.type)}
@@ -811,7 +811,7 @@ export default function MapPageLayout({
                         }`}>
                           {fac.name}
                         </h3>
-                        <p className={`text-xs line-clamp-2 mt-1 mb-2.5 leading-relaxed pr-2 ${
+                        <p className={`text-xs line-clamp-2 mt-1 mb-1.5 md:mb-2.5 leading-relaxed pr-2 ${
                           isDarkMode ? "text-slate-400" : "text-slate-505"
                         }`}>
                           {fac.address}
@@ -856,7 +856,7 @@ export default function MapPageLayout({
                       </div>
 
                       {fac.imageUrl && (
-                        <div className={`w-20 h-20 rounded-xl overflow-hidden shrink-0 self-center shadow-xs border ${
+                        <div className={`w-16 h-16 md:w-20 md:h-20 rounded-xl overflow-hidden shrink-0 self-center shadow-xs border ${
                           isDarkMode ? "bg-slate-805 border-slate-800" : "bg-slate-101 border-slate-200/40"
                         }`}>
                           <img 
@@ -876,8 +876,8 @@ export default function MapPageLayout({
           </div>
 
           {/* Stats Legend bottom widget */}
-          <div className="p-4 bg-slate-900 text-white text-xs shrink-0 flex flex-col justify-center border-t border-slate-800">
-            <div className="flex justify-between mb-1.5 font-medium">
+          <div className="p-3 md:p-4 bg-slate-900 text-white text-xs shrink-0 flex flex-col justify-center border-t border-slate-800">
+            <div className="flex justify-between mb-1 md:mb-1.5 font-medium flex-wrap gap-1">
               <span className="text-slate-400">{t.filteredCount}</span>
               <span className="font-bold text-indigo-400">{filteredFacilities.length} / {facilities.length}</span>
             </div>

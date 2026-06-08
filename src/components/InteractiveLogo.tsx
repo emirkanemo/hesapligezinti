@@ -45,9 +45,9 @@ export default function InteractiveLogo({
     },
   };
 
-  const pSize = size === "sm" ? "w-8 h-8" : size === "lg" ? "w-14 h-14" : "w-10 h-10";
-  const iconSize = size === "sm" ? "w-4 h-4" : size === "lg" ? "w-8 h-8" : "w-5.5 h-5.5";
-  const textSize = size === "sm" ? "text-sm" : size === "lg" ? "text-2xl" : "text-lg";
+  const pSize = size === "sm" ? "w-8 h-8" : size === "lg" ? "w-14 h-14" : "w-8.5 h-8.5 sm:w-10 sm:h-10";
+  const iconSize = size === "sm" ? "w-4 h-4" : size === "lg" ? "w-8 h-8" : "w-4.5 h-4.5 sm:w-5.5 sm:h-5.5";
+  const textSize = size === "sm" ? "text-sm" : size === "lg" ? "text-2xl" : "text-sm sm:text-base md:text-lg";
 
   return (
     <motion.div
